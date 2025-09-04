@@ -5,6 +5,7 @@ class AppTheme {
   static final mobileTheme = ThemeData(
     primaryColor: AppColors.blue,
     scaffoldBackgroundColor: AppColors.white,
+    fontFamily: 'BrandingSF',
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.blue,
