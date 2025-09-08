@@ -2,6 +2,7 @@ import 'package:app/common/widgets/button/start_button.dart';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
+import 'package:app/presentation/auth/pages/signup_or_signin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -22,6 +23,12 @@ class Start extends StatelessWidget {
                 alignment: Alignment(0.35, 0.0),
               ),
             ),
+          ),
+
+          Container(color: Colors.black.withOpacity(0.1)),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 40),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start, // força colar no topo
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -56,12 +63,21 @@ class Start extends StatelessWidget {
 
                 SizedBox(height: 28),
 
-                StartButton(onPressed: () {}, title: 'Começar'),
+                StartButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (BuildContext context) =>
+                            const SignupOrSignin(),
+                      ),
+                    );
+                  },
+                  title: 'Começar',
+                ),
               ],
             ),
           ),
-
-          Container(color: Colors.black.withOpacity(0.1)),
         ],
       ),
     );
