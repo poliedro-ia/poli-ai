@@ -43,7 +43,7 @@ class Start extends StatelessWidget {
                 Text(
                   'Sua Ideia Em Imagem',
                   style: TextStyle(
-                    fontWeight: FontWeight.w300,
+                    fontWeight: FontWeight.w400,
                     color: AppColors.white,
                     fontSize: 28,
                   ),
