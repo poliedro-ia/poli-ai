@@ -1,3 +1,4 @@
+import 'package:app/common/widgets/button/auth_button.dart';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
@@ -12,6 +13,7 @@ class SignupOrSignin extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
+          AppBar(),
           Align(
             alignment: Alignment.topRight,
             child: SvgPicture.asset(Vectors.topPattern),
@@ -28,20 +30,79 @@ class SignupOrSignin extends StatelessWidget {
           ),
 
           Align(
-            alignment: Alignment.center,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SvgPicture.asset(Vectors.logo),
-                Text(
-                  'Sua Ideia Em Imagem',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.black,
-                    fontSize: 28,
+            alignment: Alignment.topCenter,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(40, 200, 40, 0),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SvgPicture.asset(
+                        Vectors.logo,
+                        width: 75,
+                        height: 75,
+                        fit: BoxFit.contain,
+                      ),
+
+                      const SizedBox(height: 55),
+
+                      const Text(
+                        'Sua Ideia Em Imagem',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.dark,
+                          fontSize: 28,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      const Text(
+                        'PoliAI é uma plataforma de geração de imagens com inteligência artificial',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.grey,
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AuthButton(
+                              onPressed: () {},
+                              title: 'Registrar',
+                            ),
+                          ),
+
+                          const SizedBox(width: 10),
+
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () {},
+                              child: const Text(
+                                'Entrar',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 20,
+                                  color: AppColors.black,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ],
