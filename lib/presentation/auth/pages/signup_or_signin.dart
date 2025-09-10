@@ -2,6 +2,7 @@ import 'package:app/common/widgets/button/auth_button.dart';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
+import 'package:app/presentation/auth/pages/login.dart';
 import 'package:app/presentation/auth/pages/register.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,6 +13,7 @@ class SignupOrSignin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F7F7),
       body: Stack(
         children: [
           AppBar(),
@@ -27,7 +29,12 @@ class SignupOrSignin extends StatelessWidget {
 
           Align(
             alignment: Alignment.bottomLeft,
-            child: Image.asset(Images.authBG),
+            child: Image.asset(
+              Images.authBG,
+              width: 350, // largura desejada
+              height: 400, // altura desejada
+              fit: BoxFit.cover, // ou BoxFit.contain, para manter proporção
+            ),
           ),
 
           Align(
@@ -100,7 +107,7 @@ class SignupOrSignin extends StatelessWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (BuildContext context) =>
-                                        const Register(),
+                                        const Login(),
                                   ),
                                 );
                               },

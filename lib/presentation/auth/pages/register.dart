@@ -1,7 +1,7 @@
-import 'package:app/common/widgets/appbar/basic_app_bar.dart';
 import 'package:app/common/widgets/button/auth_button.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
+import 'package:app/presentation/auth/pages/login.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -39,37 +39,78 @@ class _RegisterState extends State<Register> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const BasicAppBar(),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+      backgroundColor: const Color(0xFFF7F7F7),
+      body: Stack(
+        children: [
+          Column(
             children: [
-              const SizedBox(height: 6),
-              SvgPicture.asset(Vectors.logo, height: 40, width: 40),
-              const SizedBox(height: 26),
-              _title(),
-              const SizedBox(height: 8),
-              _subtitle(),
-              const SizedBox(height: 40),
-              _nameField(),
-              const SizedBox(height: 18),
-              _emailField(),
-              const SizedBox(height: 18),
-              _passwordField(),
-              const SizedBox(height: 28),
-              AuthButton(onPressed: () {}, title: 'Criar Conta'),
-              const SizedBox(height: 22),
-              _orDivider(),
-              const SizedBox(height: 14),
-              _signInRow(),
-              const SizedBox(height: 8),
+              SizedBox(
+                height: kToolbarHeight + MediaQuery.of(context).padding.top,
+              ),
+              Expanded(
+                child: SafeArea(
+                  top: false,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 30,
+                      vertical: 28,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 80),
+                        _title(),
+                        const SizedBox(height: 12),
+                        _subtitle(),
+                        const SizedBox(height: 40),
+                        _nameField(),
+                        const SizedBox(height: 18),
+                        _emailField(),
+                        const SizedBox(height: 18),
+                        _passwordField(),
+                        const SizedBox(height: 28),
+                        AuthButton(onPressed: () {}, title: 'Criar Conta'),
+                        const SizedBox(height: 22),
+                        _orDivider(),
+                        const SizedBox(height: 14),
+                        _signInRow(),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-        ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top,
+            left: 0,
+            right: 0,
+            child: SizedBox(
+              height: kToolbarHeight,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => Navigator.of(context).maybePop(),
+                    ),
+                  ),
+                  Center(
+                    child: SvgPicture.asset(
+                      Vectors.logo,
+                      height: 40,
+                      width: 40,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-      backgroundColor: const Color(0xFFF7F7F7),
     );
   }
 
@@ -79,7 +120,7 @@ class _RegisterState extends State<Register> {
       style: TextStyle(
         fontWeight: FontWeight.w700,
         color: AppColors.dark,
-        fontSize: 32,
+        fontSize: 36,
       ),
       textAlign: TextAlign.center,
     );
@@ -91,25 +132,25 @@ class _RegisterState extends State<Register> {
       text: const TextSpan(
         style: TextStyle(
           fontSize: 14,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
           color: Color(0xFF7D7D7D),
           height: 1.2,
         ),
         children: [
-          TextSpan(text: 'Digite Seu '),
+          TextSpan(text: 'Digite seu '),
           TextSpan(
-            text: 'nome',
-            style: TextStyle(fontWeight: FontWeight.w700),
+            text: 'Nome',
+            style: TextStyle(fontWeight: FontWeight.w900),
           ),
           TextSpan(text: ', '),
           TextSpan(
-            text: 'email',
-            style: TextStyle(fontWeight: FontWeight.w700),
+            text: 'Email',
+            style: TextStyle(fontWeight: FontWeight.w900),
           ),
           TextSpan(text: ' e '),
           TextSpan(
-            text: 'senha',
-            style: TextStyle(fontWeight: FontWeight.w700),
+            text: 'Senha',
+            style: TextStyle(fontWeight: FontWeight.w900),
           ),
         ],
       ),
@@ -164,7 +205,7 @@ class _RegisterState extends State<Register> {
             'Ou',
             style: TextStyle(
               color: Color(0xFF7D7D7D),
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -187,7 +228,14 @@ class _RegisterState extends State<Register> {
           style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
         ),
         TextButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (BuildContext context) => const Login(),
+              ),
+            );
+          },
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
             minimumSize: const Size(0, 0),
