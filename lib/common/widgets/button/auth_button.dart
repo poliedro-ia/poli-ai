@@ -18,7 +18,11 @@ class AuthButton extends StatelessWidget {
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         minimumSize: Size.fromHeight(height ?? 80),
-        textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w400),
+        textStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w400,
+          fontFamily: 'BrandingSF',
+        ),
         foregroundColor: AppColors.white,
         backgroundColor: AppColors.blue,
       ),

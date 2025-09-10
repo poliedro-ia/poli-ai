@@ -2,6 +2,7 @@ import 'package:app/common/widgets/button/auth_button.dart';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
+import 'package:app/presentation/auth/pages/register.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -77,7 +78,15 @@ class SignupOrSignin extends StatelessWidget {
                         children: [
                           Expanded(
                             child: AuthButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (BuildContext context) =>
+                                        const Register(),
+                                  ),
+                                );
+                              },
                               title: 'Registrar',
                             ),
                           ),
@@ -86,7 +95,15 @@ class SignupOrSignin extends StatelessWidget {
 
                           Expanded(
                             child: TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (BuildContext context) =>
+                                        const Register(),
+                                  ),
+                                );
+                              },
                               child: const Text(
                                 'Entrar',
                                 style: TextStyle(
