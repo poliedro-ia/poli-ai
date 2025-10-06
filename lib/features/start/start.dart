@@ -2,7 +2,7 @@ import 'package:app/common/widgets/button/start_button.dart';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
-import 'package:app/presentation/auth/pages/signup_or_signin.dart';
+import 'package:app/features/auth/pages/signup_or_signin_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 

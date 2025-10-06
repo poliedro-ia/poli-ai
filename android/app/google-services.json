@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "157803389321",
+    "project_id": "poliai-f2a8e",
+    "storage_bucket": "poliai-f2a8e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:157803389321:android:12f7ce9f06f6c7a2c0c158",
+        "android_client_info": {
+          "package_name": "com.example.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCSrUfP6VN4lwxj794xBk9xElQtQnNzkU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

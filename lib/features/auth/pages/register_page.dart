@@ -1,7 +1,9 @@
 import 'package:app/common/widgets/button/auth_button.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
-import 'package:app/presentation/auth/pages/login.dart';
+import 'package:app/features/auth/auth_service.dart';
+import 'package:app/features/auth/pages/login_page.dart';
+import 'package:app/features/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -13,7 +15,12 @@ class Register extends StatefulWidget {
 }
 
 class _RegisterState extends State<Register> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   bool _obscure = true;
+  bool _isLoading = false;
 
   InputDecoration _fieldDecoration(String hint) {
     return InputDecoration(
@@ -34,6 +41,67 @@ class _RegisterState extends State<Register> {
         borderSide: const BorderSide(color: Color(0xFF1E6C86), width: 1.6),
       ),
     );
+  }
+
+  Future<void> register() async {
+    final email = _emailController.text.trim();
+
+    if (_nameController.text.trim().isEmpty ||
+        email.isEmpty ||
+        _passwordController.text.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Por favor, preencha todos os campos')),
+        );
+      }
+      return;
+    }
+
+    if (!(email.endsWith('@sistemapoliedro.com.br') ||
+        email.endsWith('@p4ed.com'))) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Só são permitidos emails dos domínios @sistemapoliedro.com.br e @p4ed.com',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await authService.value.createAccount(
+        name: _nameController.text.trim(),
+        email: email,
+        password: _passwordController.text,
+      );
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomePage()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao criar conta: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -69,7 +137,12 @@ class _RegisterState extends State<Register> {
                         const SizedBox(height: 18),
                         _passwordField(),
                         const SizedBox(height: 28),
-                        AuthButton(onPressed: () {}, title: 'Criar Conta'),
+                        AuthButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () async => await register(),
+                          title: _isLoading ? 'Criando...' : 'Criar Conta',
+                        ),
                         const SizedBox(height: 22),
                         _orDivider(),
                         const SizedBox(height: 14),
@@ -159,6 +232,7 @@ class _RegisterState extends State<Register> {
 
   Widget _nameField() {
     return TextField(
+      controller: _nameController,
       textInputAction: TextInputAction.next,
       decoration: _fieldDecoration('Nome Completo'),
     );
@@ -166,6 +240,7 @@ class _RegisterState extends State<Register> {
 
   Widget _emailField() {
     return TextField(
+      controller: _emailController,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
       decoration: _fieldDecoration('Email'),
@@ -174,6 +249,7 @@ class _RegisterState extends State<Register> {
 
   Widget _passwordField() {
     return TextField(
+      controller: _passwordController,
       obscureText: _obscure,
       textInputAction: TextInputAction.done,
       decoration: _fieldDecoration('Senha').copyWith(

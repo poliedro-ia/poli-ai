@@ -2,12 +2,12 @@ import 'package:app/core/configs/theme/colors.dart';
 import 'package:flutter/material.dart';
 
 class AuthButton extends StatelessWidget {
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final String title;
   final double? height;
   const AuthButton({
-    required this.onPressed,
     required this.title,
+    this.onPressed,
     this.height,
     super.key,
   });

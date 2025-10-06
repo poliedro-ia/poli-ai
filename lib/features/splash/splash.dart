@@ -1,5 +1,5 @@
 import 'package:app/core/configs/assets/vectors.dart';
-import 'package:app/presentation/intro/pages/start.dart';
+import 'package:app/features/start/start.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 

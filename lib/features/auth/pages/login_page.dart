@@ -1,7 +1,9 @@
 import 'package:app/common/widgets/button/auth_button.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
-import 'package:app/presentation/auth/pages/register.dart';
+import 'package:app/features/auth/auth_service.dart';
+import 'package:app/features/auth/pages/register_page.dart';
+import 'package:app/features/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -13,7 +15,11 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   bool _obscure = true;
+  bool _isLoading = false;
 
   InputDecoration _fieldDecoration(String hint) {
     return InputDecoration(
@@ -34,6 +40,37 @@ class _LoginState extends State<Login> {
         borderSide: const BorderSide(color: Color(0xFF1E6C86), width: 1.6),
       ),
     );
+  }
+
+  Future<void> _login() async {
+    setState(() => _isLoading = true);
+    try {
+      await authService.value.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      if (mounted) {
+        // Navega para a tela inicial do app após login
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao entrar: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -67,7 +104,10 @@ class _LoginState extends State<Login> {
                         const SizedBox(height: 18),
                         _passwordField(),
                         const SizedBox(height: 28),
-                        AuthButton(onPressed: () {}, title: 'Entrar'),
+                        AuthButton(
+                          onPressed: _isLoading ? null : _login,
+                          title: _isLoading ? 'Entrando...' : 'Entrar',
+                        ),
                         const SizedBox(height: 22),
                         _orDivider(),
                         const SizedBox(height: 14),
@@ -152,6 +192,7 @@ class _LoginState extends State<Login> {
 
   Widget _emailField() {
     return TextField(
+      controller: _emailController,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
       decoration: _fieldDecoration('Email'),
@@ -160,6 +201,7 @@ class _LoginState extends State<Login> {
 
   Widget _passwordField() {
     return TextField(
+      controller: _passwordController,
       obscureText: _obscure,
       textInputAction: TextInputAction.done,
       decoration: _fieldDecoration('Senha').copyWith(
@@ -217,9 +259,7 @@ class _LoginState extends State<Login> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (BuildContext context) => const Register(),
-              ),
+              MaterialPageRoute(builder: (_) => const Register()),
             );
           },
           style: TextButton.styleFrom(

@@ -2,8 +2,8 @@ import 'package:app/common/widgets/button/auth_button.dart';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
-import 'package:app/presentation/auth/pages/login.dart';
-import 'package:app/presentation/auth/pages/register.dart';
+import 'package:app/features/auth/pages/login_page.dart';
+import 'package:app/features/auth/pages/register_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
