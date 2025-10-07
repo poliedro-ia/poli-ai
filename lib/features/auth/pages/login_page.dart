@@ -2,10 +2,12 @@ import 'package:app/common/widgets/button/auth_button.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
 import 'package:app/features/auth/auth_service.dart';
+import 'package:app/features/auth/pages/forgot_password_page.dart';
 import 'package:app/features/auth/pages/register_page.dart';
-import 'package:app/features/home_page.dart';
+import 'package:app/features/home/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:app/features/auth/firebase_error_mapper.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -49,18 +51,14 @@ class _LoginState extends State<Login> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      if (mounted) {
-        // Navega para a tela inicial do app após login
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
-      }
+      if (!mounted) return;
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro ao entrar: $e')));
-      }
+      if (!mounted) return;
+      final msg = mapFirebaseAuthError(e);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -104,6 +102,19 @@ class _LoginState extends State<Login> {
                         const SizedBox(height: 18),
                         _passwordField(),
                         const SizedBox(height: 28),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ForgotPasswordPage(),
+                                ),
+                              );
+                            },
+                            child: const Text('Esqueci minha senha'),
+                          ),
+                        ),
                         AuthButton(
                           onPressed: _isLoading ? null : _login,
                           title: _isLoading ? 'Entrando...' : 'Entrar',

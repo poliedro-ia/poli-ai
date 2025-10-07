@@ -114,7 +114,7 @@ class SignupOrSignin extends StatelessWidget {
                               child: const Text(
                                 'Entrar',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w400,
                                   fontSize: 20,
                                   color: AppColors.black,
                                 ),

@@ -7,7 +7,6 @@ class AuthService {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
 
   User? get currentUser => firebaseAuth.currentUser;
-
   Stream<User?> get authStateChanges => firebaseAuth.authStateChanges();
 
   Future<UserCredential> signIn({
@@ -15,7 +14,7 @@ class AuthService {
     required String password,
   }) async {
     return await firebaseAuth.signInWithEmailAndPassword(
-      email: email,
+      email: email.trim(),
       password: password,
     );
   }
@@ -25,11 +24,24 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    UserCredential userCredential = await firebaseAuth
-        .createUserWithEmailAndPassword(email: email, password: password);
-    await userCredential.user?.updateDisplayName(name);
-    await userCredential.user?.reload();
-    return userCredential;
+    final cred = await firebaseAuth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    await cred.user?.updateDisplayName(name.trim());
+    await cred.user?.reload();
+    return cred;
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    await firebaseAuth.sendPasswordResetEmail(email: email.trim());
+  }
+
+  Future<void> sendEmailVerification() async {
+    final u = firebaseAuth.currentUser;
+    if (u != null && !u.emailVerified) {
+      await u.sendEmailVerification();
+    }
   }
 
   Future<void> signOut() async {

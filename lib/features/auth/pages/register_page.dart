@@ -3,9 +3,11 @@ import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/core/configs/theme/colors.dart';
 import 'package:app/features/auth/auth_service.dart';
 import 'package:app/features/auth/pages/login_page.dart';
-import 'package:app/features/home_page.dart';
+import 'package:app/features/home/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:app/core/utils/validators.dart';
+import 'package:app/features/auth/firebase_error_mapper.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});
@@ -44,27 +46,25 @@ class _RegisterState extends State<Register> {
   }
 
   Future<void> register() async {
+    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
+    final pass = _passwordController.text;
 
-    if (_nameController.text.trim().isEmpty ||
-        email.isEmpty ||
-        _passwordController.text.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Por favor, preencha todos os campos')),
-        );
-      }
+    if (Validators.requiredField(name, label: 'Nome') != null ||
+        Validators.email(email) != null ||
+        Validators.password(pass) != null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preencha os campos corretamente')),
+      );
       return;
     }
 
-    if (!(email.endsWith('@sistemapoliedro.com.br') ||
-        email.endsWith('@p4ed.com'))) {
+    if (!Validators.emailDomainAllowed(email)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Só são permitidos emails dos domínios @sistemapoliedro.com.br e @p4ed.com',
-            ),
+            content: Text('Use um email @sistemapoliedro.com.br ou @p4ed.com'),
           ),
         );
       }
@@ -72,25 +72,21 @@ class _RegisterState extends State<Register> {
     }
 
     setState(() => _isLoading = true);
-
     try {
       await authService.value.createAccount(
-        name: _nameController.text.trim(),
+        name: name,
         email: email,
-        password: _passwordController.text,
+        password: pass,
       );
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomePage()),
-          (route) => false,
-        );
-      }
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro ao criar conta: $e')));
-      }
+      if (!mounted) return;
+      final msg = mapFirebaseAuthError(e);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
