@@ -18,7 +18,7 @@ class _HomeState extends State<HomePage> {
   final TextEditingController _nameController = TextEditingController();
 
   bool _isGenerating = false;
-  List<String> _images = [];
+  final List<String> _images = [];
 
   Future<void> _generateImage() async {
     if (_promptController.text.isEmpty) return;
