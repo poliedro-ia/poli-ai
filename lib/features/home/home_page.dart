@@ -4,6 +4,9 @@ import 'package:app/features/auth/auth_service.dart';
 import 'package:app/features/splash/splash_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,19 +24,54 @@ class _HomeState extends State<HomePage> {
   List<String> _images = [];
 
   Future<void> _generateImage() async {
-    if (_promptController.text.isEmpty) return;
-
+    final texto = _promptController.text.trim();
+    if (texto.isEmpty) return;
     setState(() => _isGenerating = true);
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final tema = "fisica";
+      final subarea = "eletricidade";
+      final estilo = "vetor";
+      final aspectRatio = "1:1";
+      final model = "google/gemini-2.5-flash-image-preview";
 
-    setState(() {
-      _images.insert(
-        0,
-        "https://placehold.co/600x400/png?text=${_promptController.text}",
+      final functions = FirebaseFunctions.instanceFor(
+        region: 'southamerica-east1',
       );
-      _isGenerating = false;
-      _promptController.clear();
-    });
+      final callable = functions.httpsCallable('generateImage');
+      final result = await callable.call({
+        "tema": "fisica",
+        "subarea": "eletricidade",
+        "estilo": "vetor",
+        "detalhes": texto,
+        "aspectRatio": "1:1",
+        "model": "google/gemini-2.5-flash-image-preview",
+      });
+
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final dataUrl = data["imageDataUrl"] as String?;
+      if (dataUrl == null || dataUrl.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Não foi possível gerar a imagem.')),
+          );
+        }
+        return;
+      }
+
+      setState(() {
+        _images.insert(0, dataUrl);
+        _promptController.clear();
+      });
+    } catch (e) {
+      debugPrint("Erro ao gerar imagem: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
   }
 
   Future<void> _changeName() async {
@@ -202,18 +240,39 @@ class _HomeState extends State<HomePage> {
                       )
                     : ListView.builder(
                         itemCount: _images.length,
-                        itemBuilder: (context, index) => Card(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Image.network(
-                            _images[index],
-                            fit: BoxFit.cover,
-                            height: 180,
-                          ),
-                        ),
+                        itemBuilder: (context, index) {
+                          final src = _images[index];
+                          final isDataUrl = src.startsWith('data:image/');
+                          if (isDataUrl) {
+                            final base64Part = src.split(',').last;
+                            final bytes = base64Decode(base64Part);
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Image.memory(
+                                bytes,
+                                fit: BoxFit.cover,
+                                height: 180,
+                              ),
+                            );
+                          } else {
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Image.network(
+                                src,
+                                fit: BoxFit.cover,
+                                height: 180,
+                              ),
+                            );
+                          }
+                        },
                       ),
               ),
             ],

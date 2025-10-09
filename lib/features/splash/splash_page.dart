@@ -1,4 +1,3 @@
-// lib/features/splash/pages/splash_page.dart
 import 'package:app/features/auth/auth_service.dart';
 import 'package:app/features/home/home_page.dart';
 import 'package:app/features/start/start_page.dart';
