@@ -1,16 +1,17 @@
+import 'dart:convert';
 import 'package:app/core/configs/theme/colors.dart';
 import 'package:app/core/configs/assets/vectors.dart';
 import 'package:app/features/auth/auth_service.dart';
 import 'package:app/features/splash/splash_page.dart';
+import 'package:app/features/home/options.dart';
+import 'package:app/features/home/image_viewer_page.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
   @override
   State<HomePage> createState() => _HomeState();
 }
@@ -19,36 +20,41 @@ class _HomeState extends State<HomePage> {
   int _currentIndex = 0;
   final TextEditingController _promptController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
-
   bool _isGenerating = false;
   List<String> _images = [];
 
+  String selectedTemaLabel = temaOptions.first['label'] as String;
+  String selectedSubareaLabel = subareaLabelsForTemaValue(
+    temaOptions.first['value'] as String,
+  ).first;
+  String selectedEstiloLabel = estiloOptions.first['label'] as String;
+  String selectedAspect = aspectos.first;
+  bool modoDidatico = true;
+
   Future<void> _generateImage() async {
-    final texto = _promptController.text.trim();
-    if (texto.isEmpty) return;
+    final base = _promptController.text.trim();
+    if (base.isEmpty) return;
+    final texto = modoDidatico
+        ? '$base. Use rótulos claros, alto contraste, sem marcas, fundo neutro, texto legível, setas para indicar relações e grandezas quando necessário.'
+        : base;
     setState(() => _isGenerating = true);
     try {
-      final tema = "fisica";
-      final subarea = "eletricidade";
-      final estilo = "vetor";
-      final aspectRatio = "1:1";
-      final model = "google/gemini-2.5-flash-image-preview";
-
+      final temaValue = temaValueFromLabel(selectedTemaLabel);
+      final subValue = subareaValueFromLabel(temaValue, selectedSubareaLabel);
+      final estiloValue = estiloValueFromLabel(selectedEstiloLabel);
       final functions = FirebaseFunctions.instanceFor(
         region: 'southamerica-east1',
       );
       final callable = functions.httpsCallable('generateImage');
       final result = await callable.call({
-        "tema": "fisica",
-        "subarea": "eletricidade",
-        "estilo": "vetor",
-        "detalhes": texto,
-        "aspectRatio": "1:1",
-        "model": "google/gemini-2.5-flash-image-preview",
+        'tema': temaValue,
+        'subarea': subValue,
+        'estilo': estiloValue,
+        'detalhes': texto,
+        'aspectRatio': selectedAspect,
       });
-
       final data = Map<String, dynamic>.from(result.data as Map);
-      final dataUrl = data["imageDataUrl"] as String?;
+      final dataUrl = data['imageDataUrl'] as String?;
       if (dataUrl == null || dataUrl.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -57,13 +63,12 @@ class _HomeState extends State<HomePage> {
         }
         return;
       }
-
       setState(() {
         _images.insert(0, dataUrl);
         _promptController.clear();
       });
     } catch (e) {
-      debugPrint("Erro ao gerar imagem: $e");
+      debugPrint('Erro ao gerar imagem: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -77,7 +82,6 @@ class _HomeState extends State<HomePage> {
   Future<void> _changeName() async {
     final currentName = authService.value.currentUser?.displayName ?? '';
     _nameController.text = currentName;
-
     final newName = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -112,13 +116,11 @@ class _HomeState extends State<HomePage> {
         ],
       ),
     );
-
     if (newName != null && newName != currentName) {
       try {
         await authService.value.currentUser?.updateDisplayName(newName);
         await authService.value.currentUser?.reload();
         setState(() {});
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Nome alterado com sucesso!')),
@@ -132,6 +134,118 @@ class _HomeState extends State<HomePage> {
         }
       }
     }
+  }
+
+  Widget _controles() {
+    final temaValue = temaValueFromLabel(selectedTemaLabel);
+    final subLabels = subareaLabelsForTemaValue(temaValue);
+    if (!subLabels.contains(selectedSubareaLabel)) {
+      selectedSubareaLabel = subLabels.first;
+    }
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: selectedTemaLabel,
+                items: temaOptions
+                    .map(
+                      (e) => DropdownMenuItem(
+                        value: e['label'] as String,
+                        child: Text(
+                          e['label'] as String,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() {
+                  selectedTemaLabel = v!;
+                  selectedSubareaLabel = subareaLabelsForTemaValue(
+                    temaValueFromLabel(selectedTemaLabel),
+                  ).first;
+                }),
+                decoration: dropDeco('Tema'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: selectedSubareaLabel,
+                items: subLabels
+                    .map(
+                      (e) => DropdownMenuItem(
+                        value: e,
+                        child: Text(e, overflow: TextOverflow.ellipsis),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() => selectedSubareaLabel = v!),
+                decoration: dropDeco('Subárea'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: selectedEstiloLabel,
+                items: estiloOptions
+                    .map(
+                      (e) => DropdownMenuItem(
+                        value: e['label'] as String,
+                        child: Text(
+                          e['label'] as String,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() => selectedEstiloLabel = v!),
+                decoration: dropDeco('Estilo'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: selectedAspect,
+                items: aspectos
+                    .map(
+                      (e) => DropdownMenuItem(
+                        value: e,
+                        child: Text(e, overflow: TextOverflow.ellipsis),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() => selectedAspect = v!),
+                decoration: dropDeco('Proporção'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Switch(
+              value: modoDidatico,
+              onChanged: (v) => setState(() => modoDidatico = v),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Modo Didático',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _homeScreen() {
@@ -158,7 +272,7 @@ class _HomeState extends State<HomePage> {
                     kToolbarHeight + MediaQuery.of(context).padding.top + 20,
               ),
               const Text(
-                "Crie sua imagem educativa",
+                'Crie sua imagem educativa',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
@@ -167,10 +281,12 @@ class _HomeState extends State<HomePage> {
               ),
               const SizedBox(height: 8),
               const Text(
-                "Descreva abaixo a imagem que deseja gerar",
+                'Defina o tema, a subárea e o estilo. Depois descreva a imagem.',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              _controles(),
+              const SizedBox(height: 16),
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -189,22 +305,25 @@ class _HomeState extends State<HomePage> {
                   textInputAction: TextInputAction.done,
                   decoration: const InputDecoration(
                     hintText:
-                        "Ex: Um átomo de hidrogênio com elétrons orbitando...",
+                        'Ex: Diagrama de ligação covalente H–H com pares de elétrons e rótulos',
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 18,
                     ),
                   ),
+                  enableSuggestions: true,
+                  autocorrect: true,
+                  textCapitalization: TextCapitalization.sentences,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isGenerating ? null : _generateImage,
                   style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(60),
+                    minimumSize: const Size.fromHeight(56),
                     backgroundColor: AppColors.blue,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
@@ -212,7 +331,7 @@ class _HomeState extends State<HomePage> {
                     ),
                   ),
                   child: Text(
-                    _isGenerating ? "Gerando..." : "Gerar Imagem",
+                    _isGenerating ? 'Gerando...' : 'Gerar Imagem',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -220,9 +339,9 @@ class _HomeState extends State<HomePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 22),
               const Text(
-                "Histórico",
+                'Histórico',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -234,7 +353,7 @@ class _HomeState extends State<HomePage> {
                 child: _images.isEmpty
                     ? const Center(
                         child: Text(
-                          "Nenhuma imagem gerada ainda",
+                          'Nenhuma imagem gerada ainda',
                           style: TextStyle(color: Colors.grey),
                         ),
                       )
@@ -243,35 +362,37 @@ class _HomeState extends State<HomePage> {
                         itemBuilder: (context, index) {
                           final src = _images[index];
                           final isDataUrl = src.startsWith('data:image/');
-                          if (isDataUrl) {
-                            final base64Part = src.split(',').last;
-                            final bytes = base64Decode(base64Part);
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: Image.memory(
-                                bytes,
-                                fit: BoxFit.cover,
-                                height: 180,
-                              ),
-                            );
-                          } else {
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: Image.network(
-                                src,
-                                fit: BoxFit.cover,
-                                height: 180,
-                              ),
-                            );
-                          }
+                          final tag = 'img_$index';
+                          final child = isDataUrl
+                              ? Image.memory(
+                                  base64Decode(src.split(',').last),
+                                  fit: BoxFit.cover,
+                                  height: 180,
+                                )
+                              : Image.network(
+                                  src,
+                                  fit: BoxFit.cover,
+                                  height: 180,
+                                );
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        ImageViewerPage(src: src, tag: tag),
+                                  ),
+                                );
+                              },
+                              child: Hero(tag: tag, child: child),
+                            ),
+                          );
                         },
                       ),
               ),
@@ -308,11 +429,11 @@ class _HomeState extends State<HomePage> {
               CircleAvatar(
                 radius: 50,
                 backgroundColor: AppColors.blue,
-                child: Icon(Icons.person, size: 60, color: Colors.white),
+                child: const Icon(Icons.person, size: 60, color: Colors.white),
               ),
               const SizedBox(height: 16),
               Text(
-                authService.value.currentUser?.displayName ?? "Usuário",
+                authService.value.currentUser?.displayName ?? 'Usuário',
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
@@ -320,7 +441,7 @@ class _HomeState extends State<HomePage> {
               ),
               const SizedBox(height: 6),
               Text(
-                authService.value.currentUser?.email ?? "",
+                authService.value.currentUser?.email ?? '',
                 style: const TextStyle(color: Colors.grey, fontSize: 16),
               ),
               const SizedBox(height: 30),
@@ -340,17 +461,17 @@ class _HomeState extends State<HomePage> {
                   children: [
                     ListTile(
                       leading: Icon(Icons.edit, color: AppColors.blue),
-                      title: Text(
-                        "Alterar nome",
+                      title: const Text(
+                        'Alterar nome',
                         style: TextStyle(fontWeight: FontWeight.w500),
                       ),
                       onTap: _changeName,
                     ),
                     Divider(height: 1, color: Colors.grey.shade200),
                     ListTile(
-                      leading: Icon(Icons.logout, color: Colors.red),
-                      title: Text(
-                        "Sair",
+                      leading: const Icon(Icons.logout, color: Colors.red),
+                      title: const Text(
+                        'Sair',
                         style: TextStyle(fontWeight: FontWeight.w500),
                       ),
                       onTap: () async {
@@ -391,11 +512,11 @@ class _HomeState extends State<HomePage> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
-            label: "Criar",
+            label: 'Criar',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded),
-            label: "Minha Conta",
+            label: 'Minha Conta',
           ),
         ],
       ),
