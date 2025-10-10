@@ -5,10 +5,18 @@ import 'package:app/features/auth/auth_service.dart';
 import 'package:app/features/splash/splash_page.dart';
 import 'package:app/features/home/options.dart';
 import 'package:app/features/home/image_viewer_page.dart';
+import 'package:app/core/utils/media_utils.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/foundation.dart';
+
+class ImageItem {
+  final String src;
+  final String? model;
+  final String? prompt;
+  ImageItem({required this.src, this.model, this.prompt});
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,7 +29,7 @@ class _HomeState extends State<HomePage> {
   final TextEditingController _promptController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   bool _isGenerating = false;
-  List<String> _images = [];
+  final List<ImageItem> _images = [];
 
   String selectedTemaLabel = temaOptions.first['label'] as String;
   String selectedSubareaLabel = subareaLabelsForTemaValue(
@@ -55,6 +63,8 @@ class _HomeState extends State<HomePage> {
       });
       final data = Map<String, dynamic>.from(result.data as Map);
       final dataUrl = data['imageDataUrl'] as String?;
+      final model = data['model'] as String?;
+      final prompt = data['promptUsado'] as String?;
       if (dataUrl == null || dataUrl.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -64,7 +74,10 @@ class _HomeState extends State<HomePage> {
         return;
       }
       setState(() {
-        _images.insert(0, dataUrl);
+        _images.insert(
+          0,
+          ImageItem(src: dataUrl, model: model, prompt: prompt),
+        );
         _promptController.clear();
       });
     } catch (e) {
@@ -360,10 +373,11 @@ class _HomeState extends State<HomePage> {
                     : ListView.builder(
                         itemCount: _images.length,
                         itemBuilder: (context, index) {
-                          final src = _images[index];
+                          final item = _images[index];
+                          final src = item.src;
                           final isDataUrl = src.startsWith('data:image/');
                           final tag = 'img_$index';
-                          final child = isDataUrl
+                          final preview = isDataUrl
                               ? Image.memory(
                                   base64Decode(src.split(',').last),
                                   fit: BoxFit.cover,
@@ -385,12 +399,158 @@ class _HomeState extends State<HomePage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) =>
-                                        ImageViewerPage(src: src, tag: tag),
+                                    builder: (_) => ImageViewerPage(
+                                      src: src,
+                                      tag: tag,
+                                      model: item.model,
+                                      prompt: item.prompt,
+                                    ),
                                   ),
                                 );
                               },
-                              child: Hero(tag: tag, child: child),
+                              child: Stack(
+                                children: [
+                                  Hero(tag: tag, child: preview),
+                                  Positioned(
+                                    right: 8,
+                                    bottom: 8,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.5),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          IconButton(
+                                            onPressed: () async {
+                                              await downloadImage(
+                                                src,
+                                                filename: 'eduimage_$index',
+                                              );
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Imagem salva.',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            icon: const Icon(
+                                              Icons.download,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: () async {
+                                              await shareImage(
+                                                src,
+                                                filename: 'eduimage_$index',
+                                              );
+                                            },
+                                            icon: const Icon(
+                                              Icons.share,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: () {
+                                              showModalBottomSheet(
+                                                context: context,
+                                                isScrollControlled: true,
+                                                backgroundColor: Colors.white,
+                                                shape:
+                                                    const RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.vertical(
+                                                            top:
+                                                                Radius.circular(
+                                                                  16,
+                                                                ),
+                                                          ),
+                                                    ),
+                                                builder: (_) {
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.fromLTRB(
+                                                          16,
+                                                          16,
+                                                          16,
+                                                          24,
+                                                        ),
+                                                    child: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        const Text(
+                                                          'Detalhes da Geração',
+                                                          style: TextStyle(
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 12,
+                                                        ),
+                                                        if (item.model !=
+                                                            null) ...[
+                                                          const Text(
+                                                            'Modelo',
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 4,
+                                                          ),
+                                                          Text(item.model!),
+                                                          const SizedBox(
+                                                            height: 12,
+                                                          ),
+                                                        ],
+                                                        const Text(
+                                                          'Prompt Utilizado',
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 4,
+                                                        ),
+                                                        Text(
+                                                          item.prompt ??
+                                                              'Indisponível',
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            },
+                                            icon: const Icon(
+                                              Icons.info_outline,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },

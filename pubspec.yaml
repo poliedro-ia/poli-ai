@@ -23,6 +23,10 @@ dependencies:
   firebase_core: ^4.1.1
   firebase_auth: ^6.1.0
   cloud_functions: 6.0.2
+  http: ^1.2.2
+  file_saver: ^0.2.13
+  path_provider: ^2.1.4
+  share_plus: ^10.1.1
 
 dev_dependencies:
   flutter_test:
