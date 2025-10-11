@@ -9,7 +9,10 @@ import 'package:app/core/utils/media_utils.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:app/features/history/history_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:app/features/debug/appcheck_debug_page.dart';
+import 'package:app/features/history/history_page.dart';
 
 class ImageItem {
   final String src;
@@ -80,6 +83,21 @@ class _HomeState extends State<HomePage> {
         );
         _promptController.clear();
       });
+
+      final uid = authService.value.currentUser?.uid;
+      if (uid != null) {
+        await HistoryService().saveGenerated(
+          uid: uid,
+          src: dataUrl,
+          model: model,
+          prompt: prompt ?? base,
+          aspectRatio: selectedAspect,
+          temaSelecionado: selectedTemaLabel,
+          subareaSelecionada: selectedSubareaLabel,
+          temaResolvido: temaValue,
+          subareaResolvida: subValue,
+        );
+      }
     } catch (e) {
       debugPrint('Erro ao gerar imagem: $e');
       if (mounted) {
@@ -147,6 +165,23 @@ class _HomeState extends State<HomePage> {
         }
       }
     }
+  }
+
+  InputDecoration dropDeco(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE6E6E6)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFF1E6C86), width: 1.6),
+      ),
+    );
   }
 
   Widget _controles() {
@@ -360,6 +395,29 @@ class _HomeState extends State<HomePage> {
                   fontWeight: FontWeight.w600,
                   color: AppColors.dark,
                 ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HistoryPage()),
+                      );
+                    },
+                    icon: const Icon(Icons.cloud),
+                    label: const Text('Ver histórico salvo'),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Abaixo: histórico desta sessão',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               Expanded(
@@ -680,6 +738,20 @@ class _HomeState extends State<HomePage> {
           ),
         ],
       ),
+      floatingActionButton: kDebugMode
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AppCheckDebugPage()),
+                );
+              },
+              icon: const Icon(Icons.shield),
+              label: const Text('Debug'),
+              backgroundColor: AppColors.blue,
+              foregroundColor: Colors.white,
+            )
+          : null,
     );
   }
 }
