@@ -82,4 +82,25 @@ class HistoryService {
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
+
+  Future<void> deleteImage({required String uid, required String docId}) async {
+    final docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('images')
+        .doc(docId);
+    final snap = await docRef.get();
+    if (!snap.exists) {
+      await docRef.delete();
+      return;
+    }
+    final data = snap.data() ?? {};
+    final path = data['storagePath'] as String?;
+    if (path != null && path.isNotEmpty) {
+      try {
+        await FirebaseStorage.instance.ref(path).delete();
+      } catch (_) {}
+    }
+    await docRef.delete();
+  }
 }

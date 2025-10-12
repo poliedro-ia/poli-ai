@@ -3,6 +3,8 @@ import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import { z } from "zod";
 
+export { adminSetRole, adminSetDisabled, adminListUsers, adminSelfPromote } from "./admin";
+
 const OPENROUTER_API_KEY = defineSecret("OPENROUTER_API_KEY");
 
 const InputSchema = z.object({
@@ -195,3 +197,4 @@ export const generateImage = onCall(
         throw new HttpsError("internal", "Nenhum modelo conseguiu gerar a imagem para este pedido.");
     }
 );
+

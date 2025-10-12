@@ -10,9 +10,10 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:app/features/history/history_service.dart';
-import 'package:flutter/foundation.dart';
-import 'package:app/features/debug/appcheck_debug_page.dart';
 import 'package:app/features/history/history_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:app/features/admin/admin_page.dart';
+import 'package:app/features/admin/admin_service.dart';
 
 class ImageItem {
   final String src;
@@ -29,6 +30,8 @@ class HomePage extends StatefulWidget {
 
 class _HomeState extends State<HomePage> {
   int _currentIndex = 0;
+  bool _isAdmin = false;
+
   final TextEditingController _promptController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   bool _isGenerating = false;
@@ -41,6 +44,17 @@ class _HomeState extends State<HomePage> {
   String selectedEstiloLabel = estiloOptions.first['label'] as String;
   String selectedAspect = aspectos.first;
   bool modoDidatico = true;
+
+  Future<void> _checkAdmin() async {
+    final u = authService.value.currentUser;
+    if (u == null) return;
+    final t = await u.getIdTokenResult(true);
+    final claims = t.claims ?? {};
+    final isAdmin = claims['admin'] == true;
+    if (mounted) {
+      setState(() => _isAdmin = isAdmin);
+    }
+  }
 
   Future<void> _generateImage() async {
     final base = _promptController.text.trim();
@@ -83,7 +97,6 @@ class _HomeState extends State<HomePage> {
         );
         _promptController.clear();
       });
-
       final uid = authService.value.currentUser?.uid;
       if (uid != null) {
         await HistoryService().saveGenerated(
@@ -99,7 +112,6 @@ class _HomeState extends State<HomePage> {
         );
       }
     } catch (e) {
-      debugPrint('Erro ao gerar imagem: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -126,23 +138,20 @@ class _HomeState extends State<HomePage> {
             hintText: 'Digite seu novo nome',
             border: OutlineInputBorder(),
           ),
+          textInputAction: TextInputAction.done,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: AppColors.blue),
-            ),
+            child: const Text('Cancelar'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () {
               if (_nameController.text.trim().isNotEmpty) {
                 Navigator.pop(context, _nameController.text.trim());
               }
             },
-            style: TextButton.styleFrom(backgroundColor: AppColors.blue),
-            child: const Text('Salvar', style: TextStyle(color: Colors.white)),
+            child: const Text('Salvar'),
           ),
         ],
       ),
@@ -167,12 +176,13 @@ class _HomeState extends State<HomePage> {
     }
   }
 
-  InputDecoration dropDeco(String label) {
+  InputDecoration _fieldDeco(String label) {
     return InputDecoration(
       labelText: label,
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Color(0xFFE6E6E6)),
@@ -184,531 +194,530 @@ class _HomeState extends State<HomePage> {
     );
   }
 
+  Widget _sectionTitle(String title, {Widget? action}) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.dark,
+            ),
+          ),
+        ),
+        if (action != null) action,
+      ],
+    );
+  }
+
   Widget _controles() {
     final temaValue = temaValueFromLabel(selectedTemaLabel);
     final subLabels = subareaLabelsForTemaValue(temaValue);
     if (!subLabels.contains(selectedSubareaLabel)) {
       selectedSubareaLabel = subLabels.first;
     }
-    return Column(
-      children: [
-        Row(
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                isExpanded: true,
-                value: selectedTemaLabel,
-                items: temaOptions
-                    .map(
-                      (e) => DropdownMenuItem(
-                        value: e['label'] as String,
-                        child: Text(
-                          e['label'] as String,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() {
-                  selectedTemaLabel = v!;
-                  selectedSubareaLabel = subareaLabelsForTemaValue(
-                    temaValueFromLabel(selectedTemaLabel),
-                  ).first;
-                }),
-                decoration: dropDeco('Tema'),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: selectedTemaLabel,
+                    items: temaOptions
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e['label'] as String,
+                            child: Text(
+                              e['label'] as String,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() {
+                      selectedTemaLabel = v!;
+                      selectedSubareaLabel = subareaLabelsForTemaValue(
+                        temaValueFromLabel(selectedTemaLabel),
+                      ).first;
+                    }),
+                    decoration: _fieldDeco('Tema'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: selectedSubareaLabel,
+                    items: subLabels
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e,
+                            child: Text(e, overflow: TextOverflow.ellipsis),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => selectedSubareaLabel = v!),
+                    decoration: _fieldDeco('Subárea'),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                isExpanded: true,
-                value: selectedSubareaLabel,
-                items: subLabels
-                    .map(
-                      (e) => DropdownMenuItem(
-                        value: e,
-                        child: Text(e, overflow: TextOverflow.ellipsis),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => selectedSubareaLabel = v!),
-                decoration: dropDeco('Subárea'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: selectedEstiloLabel,
+                    items: estiloOptions
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e['label'] as String,
+                            child: Text(
+                              e['label'] as String,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => selectedEstiloLabel = v!),
+                    decoration: _fieldDeco('Estilo'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: selectedAspect,
+                    items: aspectos
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e,
+                            child: Text(e, overflow: TextOverflow.ellipsis),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => selectedAspect = v!),
+                    decoration: _fieldDeco('Proporção'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  Switch(
+                    value: modoDidatico,
+                    onChanged: (v) => setState(() => modoDidatico = v),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Modo Didático',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                isExpanded: true,
-                value: selectedEstiloLabel,
-                items: estiloOptions
-                    .map(
-                      (e) => DropdownMenuItem(
-                        value: e['label'] as String,
-                        child: Text(
-                          e['label'] as String,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => selectedEstiloLabel = v!),
-                decoration: dropDeco('Estilo'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                isExpanded: true,
-                value: selectedAspect,
-                items: aspectos
-                    .map(
-                      (e) => DropdownMenuItem(
-                        value: e,
-                        child: Text(e, overflow: TextOverflow.ellipsis),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => selectedAspect = v!),
-                decoration: dropDeco('Proporção'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Switch(
-              value: modoDidatico,
-              onChanged: (v) => setState(() => modoDidatico = v),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Modo Didático',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _homeScreen() {
-    return Stack(
-      children: [
-        Positioned(
-          top: MediaQuery.of(context).padding.top,
-          left: 0,
-          right: 0,
-          child: SizedBox(
-            height: kToolbarHeight,
-            child: Center(
-              child: SvgPicture.asset(Vectors.logo, height: 40, width: 40),
+  Widget _promptCard() {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: TextField(
+          controller: _promptController,
+          minLines: 4,
+          maxLines: 4,
+          textInputAction: TextInputAction.newline,
+          textAlignVertical: TextAlignVertical.top,
+          decoration: InputDecoration(
+            hintText: 'Descreva sua imagem...',
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFE6E6E6)),
             ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(
+                color: Color(0xFF1E6C86),
+                width: 1.6,
+              ),
+            ),
+            helperText:
+                'Ex: Diagrama de ligação covalente H–H com pares de elétrons e rótulos',
+            helperMaxLines: 2,
+          ),
+          enableSuggestions: true,
+          autocorrect: true,
+          textCapitalization: TextCapitalization.sentences,
+        ),
+      ),
+    );
+  }
+
+  Widget _generateBar() {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: _isGenerating ? null : _generateImage,
+        icon: Icon(_isGenerating ? Icons.hourglass_empty : Icons.auto_awesome),
+        label: Text(_isGenerating ? 'Gerando...' : 'Gerar Imagem'),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(56),
+          backgroundColor: AppColors.blue,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height:
-                    kToolbarHeight + MediaQuery.of(context).padding.top + 20,
+      ),
+    );
+  }
+
+  Widget _localHistoryGrid() {
+    if (_images.isEmpty) {
+      return Container(
+        height: 160,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Text(
+          'Nenhuma imagem gerada ainda',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        int cross = 1;
+        if (w >= 1100)
+          cross = 3;
+        else if (w >= 700)
+          cross = 2;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cross,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 16 / 10,
+          ),
+          itemCount: _images.length,
+          itemBuilder: (context, index) {
+            final item = _images[index];
+            final src = item.src;
+            final isDataUrl = src.startsWith('data:image/');
+            final tag = 'img_$index';
+            final preview = isDataUrl
+                ? Image.memory(
+                    base64Decode(src.split(',').last),
+                    fit: BoxFit.cover,
+                  )
+                : Image.network(src, fit: BoxFit.cover);
+            return Card(
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              const Text(
-                'Crie sua imagem educativa',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.dark,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Defina o tema, a subárea e o estilo. Depois descreva a imagem.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              _controles(),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _promptController,
-                  maxLines: 4,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    hintText:
-                        'Ex: Diagrama de ligação covalente H–H com pares de elétrons e rótulos',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 18,
-                    ),
-                  ),
-                  enableSuggestions: true,
-                  autocorrect: true,
-                  textCapitalization: TextCapitalization.sentences,
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isGenerating ? null : _generateImage,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    backgroundColor: AppColors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: Text(
-                    _isGenerating ? 'Gerando...' : 'Gerar Imagem',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 22),
-              const Text(
-                'Histórico',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.dark,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
+              child: Stack(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const HistoryPage()),
-                      );
-                    },
-                    icon: const Icon(Icons.cloud),
-                    label: const Text('Ver histórico salvo'),
+                  Positioned.fill(
+                    child: Hero(tag: tag, child: preview),
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Abaixo: histórico desta sessão',
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.grey),
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            onPressed: () async {
+                              await downloadImage(
+                                src,
+                                filename: 'eduimage_$index',
+                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Imagem salva.'),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(
+                              Icons.download,
+                              color: Colors.white,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              await shareImage(
+                                src,
+                                filename: 'eduimage_$index',
+                              );
+                            },
+                            icon: const Icon(Icons.share, color: Colors.white),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ImageViewerPage(
+                                    src: src,
+                                    tag: tag,
+                                    model: item.model,
+                                    prompt: item.prompt,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.fullscreen,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: _images.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Nenhuma imagem gerada ainda',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _images.length,
-                        itemBuilder: (context, index) {
-                          final item = _images[index];
-                          final src = item.src;
-                          final isDataUrl = src.startsWith('data:image/');
-                          final tag = 'img_$index';
-                          final preview = isDataUrl
-                              ? Image.memory(
-                                  base64Decode(src.split(',').last),
-                                  fit: BoxFit.cover,
-                                  height: 180,
-                                )
-                              : Image.network(
-                                  src,
-                                  fit: BoxFit.cover,
-                                  height: 180,
-                                );
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => ImageViewerPage(
-                                      src: src,
-                                      tag: tag,
-                                      model: item.model,
-                                      prompt: item.prompt,
-                                    ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<int> _countImages() async {
+    final uid = authService.value.currentUser?.uid;
+    if (uid == null) return 0;
+    final agg = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('images')
+        .count()
+        .get();
+    return (agg.count ?? 0);
+  }
+
+  Widget _accountScreen() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: FutureBuilder<int>(
+          future: _countImages(),
+          builder: (context, snap) {
+            final total = snap.data ?? 0;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 20),
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: AppColors.blue,
+                  child: const Icon(
+                    Icons.person,
+                    size: 60,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  authService.value.currentUser?.displayName ?? 'Usuário',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  authService.value.currentUser?.email ?? '',
+                  style: const TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                Card(
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Icon(Icons.edit, color: AppColors.blue),
+                        title: const Text('Alterar nome'),
+                        onTap: _changeName,
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.verified_outlined),
+                        title: const Text('Verificar e-mail'),
+                        subtitle: const Text('Enviar link de verificação'),
+                        onTap: () async {
+                          try {
+                            await authService.value.sendEmailVerification();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'E-mail de verificação enviado.',
                                   ),
-                                );
-                              },
-                              child: Stack(
-                                children: [
-                                  Hero(tag: tag, child: preview),
-                                  Positioned(
-                                    right: 8,
-                                    bottom: 8,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.5),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          IconButton(
-                                            onPressed: () async {
-                                              await downloadImage(
-                                                src,
-                                                filename: 'eduimage_$index',
-                                              );
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                      'Imagem salva.',
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                            icon: const Icon(
-                                              Icons.download,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          IconButton(
-                                            onPressed: () async {
-                                              await shareImage(
-                                                src,
-                                                filename: 'eduimage_$index',
-                                              );
-                                            },
-                                            icon: const Icon(
-                                              Icons.share,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          IconButton(
-                                            onPressed: () {
-                                              showModalBottomSheet(
-                                                context: context,
-                                                isScrollControlled: true,
-                                                backgroundColor: Colors.white,
-                                                shape:
-                                                    const RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.vertical(
-                                                            top:
-                                                                Radius.circular(
-                                                                  16,
-                                                                ),
-                                                          ),
-                                                    ),
-                                                builder: (_) {
-                                                  return Padding(
-                                                    padding:
-                                                        const EdgeInsets.fromLTRB(
-                                                          16,
-                                                          16,
-                                                          16,
-                                                          24,
-                                                        ),
-                                                    child: Column(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        const Text(
-                                                          'Detalhes da Geração',
-                                                          style: TextStyle(
-                                                            fontSize: 18,
-                                                            fontWeight:
-                                                                FontWeight.w700,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 12,
-                                                        ),
-                                                        if (item.model !=
-                                                            null) ...[
-                                                          const Text(
-                                                            'Modelo',
-                                                            style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                            ),
-                                                          ),
-                                                          const SizedBox(
-                                                            height: 4,
-                                                          ),
-                                                          Text(item.model!),
-                                                          const SizedBox(
-                                                            height: 12,
-                                                          ),
-                                                        ],
-                                                        const Text(
-                                                          'Prompt Utilizado',
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 4,
-                                                        ),
-                                                        Text(
-                                                          item.prompt ??
-                                                              'Indisponível',
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 8,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-                                                },
-                                              );
-                                            },
-                                            icon: const Icon(
-                                              Icons.info_outline,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erro: $e')),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.lock_reset),
+                        title: const Text('Redefinir senha'),
+                        subtitle: const Text('Enviar e-mail de redefinição'),
+                        onTap: () async {
+                          final email = authService.value.currentUser?.email;
+                          if (email == null || email.isEmpty) return;
+                          try {
+                            await authService.value.sendPasswordReset(email);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'E-mail de redefinição enviado.',
                                   ),
-                                ],
-                              ),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erro: $e')),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.photo_library_outlined),
+                        title: const Text('Minhas imagens'),
+                        subtitle: Text('Total: $total'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HistoryPage(),
                             ),
                           );
                         },
                       ),
-              ),
-            ],
-          ),
+                      const Divider(height: 1),
+                      FutureBuilder<bool>(
+                        future: (() async {
+                          final u = authService.value.currentUser;
+                          if (u == null) return false;
+                          final t = await u.getIdTokenResult(true);
+                          return (t.claims?['admin'] == true);
+                        })(),
+                        builder: (context, snapAdmin) {
+                          final isAdmin = snapAdmin.data == true;
+                          if (isAdmin) return const SizedBox.shrink();
+                          return ListTile(
+                            leading: const Icon(Icons.security),
+                            title: const Text('Tornar-me Admin'),
+                            subtitle: const Text(
+                              'Apenas durante desenvolvimento',
+                            ),
+                            onTap: () async {
+                              try {
+                                await AdminService().selfPromote();
+                                await _checkAdmin();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Você agora é admin.'),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Erro: $e')),
+                                  );
+                                }
+                              }
+                            },
+                          );
+                        },
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.logout, color: Colors.red),
+                        title: const Text('Sair'),
+                        onTap: () async {
+                          await authService.value.signOut();
+                          if (!mounted) return;
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) => const SplashPage(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
-      ],
+      ),
     );
   }
 
-  Widget _accountScreen() {
-    return Stack(
-      children: [
-        Positioned(
-          top: MediaQuery.of(context).padding.top,
-          left: 0,
-          right: 0,
-          child: SizedBox(
-            height: kToolbarHeight,
-            child: Center(
-              child: SvgPicture.asset(Vectors.logo, height: 40, width: 40),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                height:
-                    kToolbarHeight + MediaQuery.of(context).padding.top + 50,
-              ),
-              CircleAvatar(
-                radius: 50,
-                backgroundColor: AppColors.blue,
-                child: const Icon(Icons.person, size: 60, color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                authService.value.currentUser?.displayName ?? 'Usuário',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                authService.value.currentUser?.email ?? '',
-                style: const TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-              const SizedBox(height: 30),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: Icon(Icons.edit, color: AppColors.blue),
-                      title: const Text(
-                        'Alterar nome',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      onTap: _changeName,
-                    ),
-                    Divider(height: 1, color: Colors.grey.shade200),
-                    ListTile(
-                      leading: const Icon(Icons.logout, color: Colors.red),
-                      title: const Text(
-                        'Sair',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      onTap: () async {
-                        await authService.value.signOut();
-                        if (!mounted) return;
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const SplashPage()),
-                          (route) => false,
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+  @override
+  void initState() {
+    super.initState();
+    _checkAdmin();
   }
 
   @override
@@ -720,38 +729,101 @@ class _HomeState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final destinations = <NavigationDestination>[
+      const NavigationDestination(
+        icon: Icon(Icons.home_rounded),
+        label: 'Criar',
+      ),
+      const NavigationDestination(
+        icon: Icon(Icons.person_rounded),
+        label: 'Minha Conta',
+      ),
+      if (_isAdmin)
+        const NavigationDestination(
+          icon: Icon(Icons.admin_panel_settings),
+          label: 'Admin',
+        ),
+    ];
     return Scaffold(
-      body: _currentIndex == 0 ? _homeScreen() : _accountScreen(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: AppColors.blue,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Criar',
+      body: _currentIndex == 0
+          ? _homeScreen()
+          : _currentIndex == 1
+          ? _accountScreen()
+          : const AdminPage(),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (i) => setState(() => _currentIndex = i),
+        destinations: destinations,
+      ),
+    );
+  }
+
+  Widget _homeScreen() {
+    return SafeArea(
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: Center(
+                child: SvgPicture.asset(Vectors.logo, height: 44, width: 44),
+              ),
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'Minha Conta',
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Crie sua imagem educativa',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.dark,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Defina o tema, a subárea e o estilo. Depois descreva a imagem.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  _controles(),
+                  const SizedBox(height: 16),
+                  _promptCard(),
+                  const SizedBox(height: 16),
+                  _generateBar(),
+                  const SizedBox(height: 24),
+                  _sectionTitle(
+                    'Histórico',
+                    action: FilledButton.tonalIcon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HistoryPage(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.cloud),
+                      label: const Text('Ver histórico salvo'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              child: _localHistoryGrid(),
+            ),
           ),
         ],
       ),
-      floatingActionButton: kDebugMode
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AppCheckDebugPage()),
-                );
-              },
-              icon: const Icon(Icons.shield),
-              label: const Text('Debug'),
-              backgroundColor: AppColors.blue,
-              foregroundColor: Colors.white,
-            )
-          : null,
     );
   }
 }
