@@ -3,6 +3,8 @@ import 'package:app/features/history/history_service.dart';
 import 'package:app/features/home/image_viewer_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:app/common/widgets/skeleton.dart';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
@@ -29,10 +31,36 @@ class HistoryPage extends StatelessWidget {
         stream: HistoryService().userImagesStream(uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: _columnsForWidth(
+                  MediaQuery.of(context).size.width,
+                ),
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 16 / 12,
+              ),
+              itemCount: 8,
+              itemBuilder: (_, __) => const Skeleton(height: double.infinity),
+            );
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('Nenhuma imagem salva ainda.'));
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_off, size: 48, color: Colors.grey),
+                  const SizedBox(height: 8),
+                  const Text('Nenhuma imagem salva ainda.'),
+                  const SizedBox(height: 8),
+                  FilledButton.tonal(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Gerar imagens'),
+                  ),
+                ],
+              ),
+            );
           }
           final docs = snapshot.data!.docs;
           return LayoutBuilder(
@@ -71,11 +99,14 @@ class HistoryPage extends StatelessWidget {
                           ),
                         );
                       },
-                      child: AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: Hero(
-                          tag: tag,
-                          child: Image.network(src, fit: BoxFit.cover),
+                      child: CachedNetworkImage(
+                        imageUrl: src,
+                        fit: BoxFit.cover,
+                        fadeInDuration: const Duration(milliseconds: 300),
+                        placeholder: (_, __) =>
+                            const Skeleton(height: double.infinity),
+                        errorWidget: (_, __, ___) => const Center(
+                          child: Icon(Icons.broken_image_outlined),
                         ),
                       ),
                     ),
