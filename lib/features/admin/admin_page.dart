@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:app/core/configs/assets/images.dart';
 import 'package:app/features/admin/admin_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:app/features/home/home_page.dart';
+import 'package:app/features/history/history_page.dart';
 
 class AdminPage extends StatefulWidget {
-  const AdminPage({super.key});
+  final bool darkInitial;
+  const AdminPage({super.key, this.darkInitial = true});
   @override
   State<AdminPage> createState() => _AdminPageState();
 }
@@ -20,10 +25,22 @@ class _AdminPageState extends State<AdminPage> {
   String _statusFilter = 'todos';
   String _error = '';
   List<Map<String, dynamic>> _users = [];
+  late bool _dark;
+
+  Color get _bg => _dark ? const Color(0xff0B0E19) : const Color(0xffF7F8FA);
+  Color get _layer => _dark ? const Color(0xff121528) : Colors.white;
+  Color get _border =>
+      _dark ? const Color(0xff1E2233) : const Color(0xffE7EAF0);
+  Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
+  Color get _textSub =>
+      _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
+  Color get _cta => const Color(0xff2563EB);
+  Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
 
   @override
   void initState() {
     super.initState();
+    _dark = widget.darkInitial;
     _scroll.addListener(_onScroll);
     _load(reset: true);
   }
@@ -101,8 +118,9 @@ class _AdminPageState extends State<AdminPage> {
       final name = (u['displayName'] as String? ?? '').toLowerCase();
       final admin = u['admin'] as bool? ?? false;
       final disabled = u['disabled'] as bool? ?? false;
-      if (q.isNotEmpty && !(email.contains(q) || name.contains(q)))
+      if (q.isNotEmpty && !(email.contains(q) || name.contains(q))) {
         return false;
+      }
       if (_roleFilter == 'admin' && !admin) return false;
       if (_roleFilter == 'user' && admin) return false;
       if (_statusFilter == 'ativo' && disabled) return false;
@@ -111,127 +129,280 @@ class _AdminPageState extends State<AdminPage> {
     }).toList();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final filtered = _filtered;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Área Administrativa'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: _loading ? null : _reloadAll,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
+  ThemeData _theme(BuildContext baseCtx) {
+    final base = Theme.of(baseCtx);
+    return base.copyWith(
+      scaffoldBackgroundColor: _bg,
+      appBarTheme: base.appBarTheme.copyWith(
+        backgroundColor: _barBg,
+        foregroundColor: _textMain,
+        elevation: 0,
+        toolbarHeight: 76,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchCtrl,
-                    textInputAction: TextInputAction.search,
-                    onSubmitted: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      hintText: 'Buscar por nome ou e-mail',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                      isDense: true,
+      iconTheme: base.iconTheme.copyWith(color: _textMain),
+      textTheme: base.textTheme.apply(
+        bodyColor: _textMain,
+        displayColor: _textMain,
+      ),
+      inputDecorationTheme: base.inputDecorationTheme.copyWith(
+        filled: true,
+        fillColor: _dark ? const Color(0xff0F1220) : Colors.white,
+        labelStyle: TextStyle(color: _textSub),
+        hintStyle: TextStyle(color: _textSub),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(
+            color: _dark ? const Color(0xff23263A) : const Color(0xffD8DEE9),
+          ),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: _cta, width: 1.4),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+      ),
+      dataTableTheme: base.dataTableTheme.copyWith(
+        dataTextStyle: TextStyle(color: _textMain),
+        headingTextStyle: TextStyle(
+          color: _textMain,
+          fontWeight: FontWeight.w600,
+        ),
+        headingRowColor: WidgetStateProperty.resolveWith(
+          (_) => _dark ? const Color(0x121E2233) : const Color(0x11E7EAF0),
+        ),
+        dividerThickness: 0.6,
+        decoration: BoxDecoration(
+          color: _layer,
+          border: Border.all(color: _border),
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _appBar() {
+    return AppBar(
+      automaticallyImplyLeading: false,
+      titleSpacing: 0,
+      title: Padding(
+        padding: const EdgeInsets.only(left: 20),
+        child: GestureDetector(
+          onTap: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePage()),
+              (route) => false,
+            );
+          },
+          child: Image.asset(
+            _dark ? Images.whiteLogo : Images.logo,
+            height: 100,
+            width: 100,
+          ),
+        ),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 6),
+          child: IconButton(
+            tooltip: _dark ? 'Tema claro' : 'Tema escuro',
+            onPressed: () => setState(() => _dark = !_dark),
+            icon: Icon(
+              _dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
+            ),
+            color: _textMain,
+            style: IconButton.styleFrom(
+              padding: const EdgeInsets.all(10),
+              backgroundColor: _dark
+                  ? const Color(0x221E2A4A)
+                  : const Color(0x22E9EEF9),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: FilledButton.tonal(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HistoryPage()),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: _dark
+                  ? const Color(0xff1E2A4A)
+                  : const Color(0xffE9EEF9),
+              foregroundColor: _textMain,
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Histórico'),
+          ),
+        ),
+        if (kIsWeb)
+          StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (_, snap) {
+              final logged = snap.data != null;
+              return Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const HomePage()),
+                      (route) => false,
+                    );
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _cta,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
+                  child: Text(logged ? 'Minha Conta' : 'Login'),
                 ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: () => setState(() {}),
-                  child: const Text('Filtrar'),
-                ),
-              ],
-            ),
+              );
+            },
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
-                  children: [
-                    const Text('Papel'),
-                    ChoiceChip(
-                      label: const Text('Todos'),
-                      selected: _roleFilter == 'todos',
-                      onSelected: (_) => setState(() => _roleFilter = 'todos'),
+      ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(height: 1, color: _border.withOpacity(0.7)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final themed = _theme(context);
+    final filtered = _filtered;
+    return Theme(
+      data: themed,
+      child: Scaffold(
+        appBar: _appBar(),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (_) => setState(() {}),
+                      style: TextStyle(color: _textMain),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar por nome ou e-mail',
+                        prefixIcon: Icon(Icons.search, color: _textSub),
+                      ),
                     ),
-                    ChoiceChip(
-                      label: const Text('Usuários'),
-                      selected: _roleFilter == 'user',
-                      onSelected: (_) => setState(() => _roleFilter = 'user'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => setState(() {}),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _cta,
+                      foregroundColor: Colors.white,
                     ),
-                    ChoiceChip(
-                      label: const Text('Admins'),
-                      selected: _roleFilter == 'admin',
-                      onSelected: (_) => setState(() => _roleFilter = 'admin'),
-                    ),
-                  ],
-                ),
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
-                  children: [
-                    const Text('Status'),
-                    ChoiceChip(
-                      label: const Text('Todos'),
-                      selected: _statusFilter == 'todos',
-                      onSelected: (_) =>
-                          setState(() => _statusFilter = 'todos'),
-                    ),
-                    ChoiceChip(
-                      label: const Text('Ativos'),
-                      selected: _statusFilter == 'ativo',
-                      onSelected: (_) =>
-                          setState(() => _statusFilter = 'ativo'),
-                    ),
-                    ChoiceChip(
-                      label: const Text('Bloqueados'),
-                      selected: _statusFilter == 'bloqueado',
-                      onSelected: (_) =>
-                          setState(() => _statusFilter = 'bloqueado'),
-                    ),
-                  ],
-                ),
-                FilledButton.tonal(
-                  onPressed: _loading || _nextToken == null
-                      ? null
-                      : () => _load(more: true),
-                  child: const Text('Carregar mais'),
-                ),
-              ],
+                    child: const Text('Filtrar'),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final wide = constraints.maxWidth >= 820;
-                if (_error.isNotEmpty) {
-                  return _errorView();
-                }
-                if (!_initialLoaded && _loading) {
-                  return _skeletonView();
-                }
-                if (_filtered.isEmpty) {
-                  return _emptyView();
-                }
-                return wide ? _wideTable(filtered) : _compactList(filtered);
-              },
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    children: [
+                      Text('Papel', style: TextStyle(color: _textSub)),
+                      ChoiceChip(
+                        label: const Text('Todos'),
+                        selected: _roleFilter == 'todos',
+                        onSelected: (_) =>
+                            setState(() => _roleFilter = 'todos'),
+                      ),
+                      ChoiceChip(
+                        label: const Text('Usuários'),
+                        selected: _roleFilter == 'user',
+                        onSelected: (_) => setState(() => _roleFilter = 'user'),
+                      ),
+                      ChoiceChip(
+                        label: const Text('Admins'),
+                        selected: _roleFilter == 'admin',
+                        onSelected: (_) =>
+                            setState(() => _roleFilter = 'admin'),
+                      ),
+                    ],
+                  ),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    children: [
+                      Text('Status', style: TextStyle(color: _textSub)),
+                      ChoiceChip(
+                        label: const Text('Todos'),
+                        selected: _statusFilter == 'todos',
+                        onSelected: (_) =>
+                            setState(() => _statusFilter = 'todos'),
+                      ),
+                      ChoiceChip(
+                        label: const Text('Ativos'),
+                        selected: _statusFilter == 'ativo',
+                        onSelected: (_) =>
+                            setState(() => _statusFilter = 'ativo'),
+                      ),
+                      ChoiceChip(
+                        label: const Text('Bloqueados'),
+                        selected: _statusFilter == 'bloqueado',
+                        onSelected: (_) =>
+                            setState(() => _statusFilter = 'bloqueado'),
+                      ),
+                    ],
+                  ),
+                  FilledButton.tonal(
+                    onPressed: _loading || _nextToken == null
+                        ? null
+                        : () => _load(more: true),
+                    child: const Text('Carregar mais'),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.maxWidth >= 820;
+                  if (_error.isNotEmpty) {
+                    return _errorView();
+                  }
+                  if (!_initialLoaded && _loading) {
+                    return _skeletonView();
+                  }
+                  if (_filtered.isEmpty) {
+                    return _emptyView();
+                  }
+                  return wide ? _wideTable(filtered) : _compactList(filtered);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -241,11 +412,17 @@ class _AdminPageState extends State<AdminPage> {
       controller: _scroll,
       children: [
         const SizedBox(height: 80),
-        Center(child: Text('Erro: $_error')),
+        Center(
+          child: Text('Erro: $_error', style: TextStyle(color: _textMain)),
+        ),
         const SizedBox(height: 12),
         Center(
           child: FilledButton(
             onPressed: _reloadAll,
+            style: FilledButton.styleFrom(
+              backgroundColor: _cta,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Tentar novamente'),
           ),
         ),
@@ -262,7 +439,9 @@ class _AdminPageState extends State<AdminPage> {
         height: 64,
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.05),
+          color: _dark
+              ? Colors.white.withOpacity(0.04)
+              : Colors.black.withOpacity(0.04),
           borderRadius: BorderRadius.circular(10),
         ),
       ),
@@ -272,12 +451,17 @@ class _AdminPageState extends State<AdminPage> {
   Widget _emptyView() {
     return ListView(
       controller: _scroll,
-      children: const [
-        SizedBox(height: 80),
-        Icon(Icons.group_outlined, size: 64, color: Colors.grey),
-        SizedBox(height: 8),
-        Center(child: Text('Sem usuários encontrados')),
-        SizedBox(height: 120),
+      children: [
+        const SizedBox(height: 80),
+        Icon(Icons.group_outlined, size: 64, color: _textSub),
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            'Sem usuários encontrados',
+            style: TextStyle(color: _textMain),
+          ),
+        ),
+        const SizedBox(height: 120),
       ],
     );
   }
@@ -320,6 +504,7 @@ class _AdminPageState extends State<AdminPage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         softWrap: false,
+                        style: TextStyle(color: _textMain),
                       ),
                     ),
                   ),
@@ -331,6 +516,7 @@ class _AdminPageState extends State<AdminPage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         softWrap: false,
+                        style: TextStyle(color: _textMain),
                       ),
                     ),
                   ),
@@ -342,11 +528,14 @@ class _AdminPageState extends State<AdminPage> {
                       ),
                       decoration: BoxDecoration(
                         color: admin
-                            ? Colors.blue.withOpacity(0.12)
-                            : Colors.grey.withOpacity(0.12),
+                            ? const Color(0x1A2563EB)
+                            : (_dark ? Colors.white12 : Colors.black12),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(admin ? 'Admin' : 'Usuário'),
+                      child: Text(
+                        admin ? 'Admin' : 'Usuário',
+                        style: TextStyle(color: _textMain),
+                      ),
                     ),
                   ),
                   DataCell(
@@ -357,17 +546,20 @@ class _AdminPageState extends State<AdminPage> {
                       ),
                       decoration: BoxDecoration(
                         color: disabled
-                            ? Colors.red.withOpacity(0.12)
-                            : Colors.green.withOpacity(0.12),
+                            ? const Color(0x1AFF5252)
+                            : const Color(0x1A22C55E),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(disabled ? 'Bloqueado' : 'Ativo'),
+                      child: Text(
+                        disabled ? 'Bloqueado' : 'Ativo',
+                        style: TextStyle(color: _textMain),
+                      ),
                     ),
                   ),
                   DataCell(
                     Icon(
                       verified ? Icons.verified : Icons.verified_outlined,
-                      color: verified ? Colors.green : null,
+                      color: verified ? Colors.green : _textSub,
                     ),
                   ),
                   DataCell(
@@ -379,7 +571,7 @@ class _AdminPageState extends State<AdminPage> {
                           onPressed: () => _toggleAdmin(uid, !admin),
                           icon: Icon(
                             admin ? Icons.shield_outlined : Icons.shield,
-                            color: Colors.blue,
+                            color: _cta,
                           ),
                         ),
                         IconButton(
@@ -440,7 +632,9 @@ class _AdminPageState extends State<AdminPage> {
 
           return Card(
             elevation: 0,
+            color: _layer,
             shape: RoundedRectangleBorder(
+              side: BorderSide(color: _border),
               borderRadius: BorderRadius.circular(12),
             ),
             child: ListTile(
@@ -451,11 +645,13 @@ class _AdminPageState extends State<AdminPage> {
               ),
               leading: CircleAvatar(
                 radius: 18,
+                backgroundColor: _cta.withOpacity(0.18),
                 child: Text(
                   (name.isNotEmpty
                           ? name[0]
                           : (email.isNotEmpty ? email[0] : '?'))
                       .toUpperCase(),
+                  style: TextStyle(color: _textMain),
                 ),
               ),
               title: Text(
@@ -463,6 +659,7 @@ class _AdminPageState extends State<AdminPage> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 softWrap: false,
+                style: TextStyle(color: _textMain),
               ),
               subtitle: Row(
                 children: [
@@ -472,14 +669,14 @@ class _AdminPageState extends State<AdminPage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       softWrap: false,
-                      style: const TextStyle(fontSize: 12),
+                      style: TextStyle(fontSize: 12, color: _textSub),
                     ),
                   ),
                   const SizedBox(width: 6),
                   Icon(
                     verified ? Icons.verified : Icons.verified_outlined,
                     size: 16,
-                    color: verified ? Colors.green : null,
+                    color: verified ? Colors.green : _textSub,
                   ),
                 ],
               ),
@@ -499,7 +696,7 @@ class _AdminPageState extends State<AdminPage> {
                         Icon(
                           admin ? Icons.shield_outlined : Icons.shield,
                           size: 18,
-                          color: Colors.blue,
+                          color: _cta,
                         ),
                         const SizedBox(width: 8),
                         Text(admin ? 'Remover admin' : 'Tornar admin'),

@@ -1,19 +1,13 @@
-import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:app/core/configs/assets/vectors.dart';
-import 'package:app/core/configs/theme/colors.dart';
-import 'package:app/features/auth/auth_service.dart';
-import 'package:app/features/splash/splash_page.dart';
+
+import 'package:app/core/configs/assets/images.dart';
+import 'package:app/features/auth/pages/signup_or_signin_page.dart';
 import 'package:app/features/history/history_service.dart';
 import 'package:app/features/history/history_page.dart';
-import 'package:app/features/home/options.dart';
-import 'package:app/features/home/widgets/controls_card.dart';
-import 'package:app/features/home/widgets/prompt_card.dart';
-import 'package:app/features/home/widgets/remote_history_grid.dart';
 import 'package:app/features/admin/admin_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -22,391 +16,655 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomeState();
 }
 
-class _HomeState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomeState extends State<HomePage> {
+  final _scroll = ScrollController();
+  final _genKey = GlobalKey();
+  final _prompt = TextEditingController();
+
+  String _tema = 'Física';
+  String _sub = 'Eletricidade';
+  String _estilo = 'Vetorial';
+  String _aspect = '16:9';
+  bool _didatico = true;
+  bool _loading = false;
+  String? _preview;
   int _currentIndex = 0;
+  bool _dark = true;
   bool _isAdmin = false;
-
-  final TextEditingController _promptController = TextEditingController();
-  bool _isGenerating = false;
-
-  String selectedTemaLabel = temaOptions.first['label'] as String;
-  String selectedSubareaLabel = subareaLabelsForTemaValue(
-    temaOptions.first['value'] as String,
-  ).first;
-  String selectedEstiloLabel = estiloOptions.first['label'] as String;
-  String selectedAspect = aspectos.first;
-  bool modoDidatico = true;
-
-  late final AnimationController _anim;
-  late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
 
   @override
   void initState() {
     super.initState();
-    _resolveIsAdmin();
-    final u = FirebaseAuth.instance.currentUser;
-    if (u != null) {
-      _ensureUserDoc(u);
-    }
-    _anim = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 720),
-    );
-    _fade = CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic);
-    _slide = Tween<Offset>(
-      begin: const Offset(0, .08),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic));
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _anim.forward();
+    FirebaseAuth.instance.idTokenChanges().listen((u) async {
+      if (!mounted) return;
+      if (u == null) {
+        setState(() => _isAdmin = false);
+        return;
+      }
+      final tok = await u.getIdTokenResult(true);
+      final adm = (tok.claims?['admin'] as bool?) ?? false;
+      setState(() => _isAdmin = adm);
     });
   }
 
   @override
   void dispose() {
-    _promptController.dispose();
-    _anim.dispose();
+    _scroll.dispose();
+    _prompt.dispose();
     super.dispose();
   }
 
-  Future<void> _ensureUserDoc(User user) async {
-    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
-    final snap = await ref.get();
-    final now = FieldValue.serverTimestamp();
-    final search = _buildSearch(user);
-    if (!snap.exists) {
-      await ref.set({
-        'email': user.email ?? '',
-        'displayName': user.displayName ?? '',
-        'createdAt': now,
-        'disabled': false,
-        'role': 'user',
-        'search': search,
-      });
+  Color get _bg => _dark ? const Color(0xff0B0E19) : const Color(0xffF7F8FA);
+  Color get _layer => _dark ? const Color(0xff121528) : Colors.white;
+  Color get _border =>
+      _dark ? const Color(0xff1E2233) : const Color(0xffE7EAF0);
+  Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
+  Color get _textSub =>
+      _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
+  Color get _fieldBg => _dark ? const Color(0xff0F1220) : Colors.white;
+  Color get _fieldBorder =>
+      _dark ? const Color(0xff23263A) : const Color(0xffD8DEE9);
+  Color get _cta => const Color(0xff2563EB);
+  Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
+
+  List<String> _subareasFor(String tema) {
+    if (tema == 'Física') {
+      return ['Eletricidade', 'Mecânica', 'Óptica', 'Termodinâmica'];
+    } else {
+      return ['Ligações', 'Reações', 'Estrutura', 'Estequiometria'];
+    }
+  }
+
+  Future<void> _scrollToGen() async {
+    final ctx = _genKey.currentContext;
+    if (ctx == null) return;
+    await Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOutCubic,
+      alignment: 0,
+    );
+  }
+
+  Future<void> _generate() async {
+    final detalhesBase = _prompt.text.trim();
+    if (detalhesBase.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Descreva sua imagem antes de gerar.')),
+      );
       return;
     }
-    await ref.update({
-      'email': user.email ?? '',
-      'displayName': user.displayName ?? '',
-      'search': search,
-    });
-  }
-
-  List<String> _buildSearch(User u) {
-    final e = (u.email ?? '').toLowerCase();
-    final n = (u.displayName ?? '').toLowerCase();
-    final tokens = <String>{};
-    void addTokens(String s) {
-      final parts = s.split(RegExp(r'[\s@._-]+')).where((p) => p.isNotEmpty);
-      for (final p in parts) {
-        for (int i = 1; i <= p.length; i++) {
-          tokens.add(p.substring(0, i));
-        }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (kIsWeb) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SignupOrSigninPageWrapper()),
+        );
+        return;
+      } else {
+        await showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Entre para continuar'),
+            content: const Text(
+              'Faça login ou crie uma conta para gerar imagens.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SignupOrSignin()),
+                  );
+                },
+                child: const Text('Login/Registrar'),
+              ),
+            ],
+          ),
+        );
+        return;
       }
     }
-
-    addTokens(e);
-    addTokens(n);
-    return tokens.toList();
-  }
-
-  Future<void> _resolveIsAdmin() async {
-    final u = authService.value.currentUser;
-    if (u == null) return;
-    bool admin = false;
+    setState(() => _loading = true);
     try {
-      final token = await u.getIdTokenResult(true);
-      final claims = token.claims ?? {};
-      if (claims['admin'] == true) admin = true;
-    } catch (_) {}
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(u.uid)
-          .get();
-      final data = snap.data();
-      if (data != null) {
-        if (data['role'] == 'admin') admin = true;
-        final roles = data['roles'];
-        if (roles is Map && roles['admin'] == true) admin = true;
-      }
-    } catch (_) {}
-    if (mounted) setState(() => _isAdmin = admin);
-  }
-
-  Future<void> _generateImage() async {
-    final base = _promptController.text.trim();
-    if (base.isEmpty) return;
-    final texto = modoDidatico
-        ? '$base. Use rótulos claros, alto contraste, sem marcas, fundo neutro, texto legível, setas para indicar relações e grandezas quando necessário.'
-        : base;
-    setState(() => _isGenerating = true);
-    try {
-      final temaValue = temaValueFromLabel(selectedTemaLabel);
-      final subValue = subareaValueFromLabel(temaValue, selectedSubareaLabel);
-      final estiloValue = estiloValueFromLabel(selectedEstiloLabel);
-      final functions = FirebaseFunctions.instanceFor(
+      final texto = _didatico
+          ? '$detalhesBase. Use rótulos claros, alto contraste, sem marcas, fundo neutro, texto legível, setas para indicar relações e grandezas quando necessário.'
+          : detalhesBase;
+      final callable = FirebaseFunctions.instanceFor(
         region: 'southamerica-east1',
-      );
-      final callable = functions.httpsCallable('generateImage');
+      ).httpsCallable('generateImage');
       final result = await callable.call({
-        'tema': temaValue,
-        'subarea': subValue,
-        'estilo': estiloValue,
+        'tema': _tema.toLowerCase(),
+        'subarea': _sub.toLowerCase(),
+        'estilo': _estilo.toLowerCase(),
         'detalhes': texto,
-        'aspectRatio': selectedAspect,
+        'aspectRatio': _aspect,
       });
       final data = Map<String, dynamic>.from(result.data as Map);
       final dataUrl = data['imageDataUrl'] as String?;
-      final model = data['model'] as String?;
-      final prompt = data['promptUsado'] as String?;
       if (dataUrl == null || dataUrl.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Não foi possível gerar a imagem.')),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível gerar a imagem.')),
+        );
         return;
       }
-      final uid = authService.value.currentUser?.uid;
-      if (uid != null) {
-        await HistoryService().saveGenerated(
-          uid: uid,
-          src: dataUrl,
-          model: model,
-          prompt: prompt ?? base,
-          aspectRatio: selectedAspect,
-          temaSelecionado: selectedTemaLabel,
-          subareaSelecionada: selectedSubareaLabel,
-          temaResolvido: temaValue,
-          subareaResolvida: subValue,
-        );
-      }
-      _promptController.clear();
+      setState(() => _preview = dataUrl);
+      await HistoryService().saveGenerated(
+        uid: user.uid,
+        src: dataUrl,
+        model: data['model'] as String?,
+        prompt: data['promptUsado'] as String? ?? texto,
+        aspectRatio: _aspect,
+        temaSelecionado: _tema,
+        subareaSelecionada: _sub,
+        temaResolvido: _tema.toLowerCase(),
+        subareaResolvida: _sub.toLowerCase(),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
     } finally {
-      if (mounted) setState(() => _isGenerating = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<int> _countImages() async {
-    final uid = authService.value.currentUser?.uid;
-    if (uid == null) return 0;
-    final agg = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('images')
-        .count()
-        .get();
-    return agg.count ?? 0;
+  PreferredSizeWidget _appBar() {
+    return AppBar(
+      backgroundColor: _barBg,
+      elevation: 0,
+      automaticallyImplyLeading: false,
+      toolbarHeight: kIsWeb ? 76 : kToolbarHeight,
+      titleSpacing: 0,
+      title: Padding(
+        padding: EdgeInsets.only(left: kIsWeb ? 20 : 14),
+        child: GestureDetector(
+          onTap: () async {
+            setState(() => _currentIndex = 0);
+            await _scroll.animateTo(
+              0,
+              duration: const Duration(milliseconds: 450),
+              curve: Curves.easeOutCubic,
+            );
+          },
+          child: Image.asset(
+            _dark ? Images.whiteLogo : Images.logo,
+            height: kIsWeb ? 100 : 82,
+            width: kIsWeb ? 100 : 82,
+          ),
+        ),
+      ),
+      actions: [
+        Padding(
+          padding: EdgeInsets.only(right: kIsWeb ? 10 : 6),
+          child: IconButton(
+            tooltip: _dark ? 'Tema claro' : 'Tema escuro',
+            onPressed: () => setState(() => _dark = !_dark),
+            icon: Icon(
+              _dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
+              color: _textMain,
+              size: kIsWeb ? 24 : 22,
+            ),
+            style: IconButton.styleFrom(
+              padding: const EdgeInsets.all(10),
+              backgroundColor: _dark
+                  ? const Color(0x221E2A4A)
+                  : const Color(0x22E9EEF9),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(right: kIsWeb ? 12 : 8),
+          child: FilledButton.tonal(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HistoryPage()),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: _dark
+                  ? const Color(0xff1E2A4A)
+                  : const Color(0xffE9EEF9),
+              foregroundColor: _textMain,
+              padding: EdgeInsets.symmetric(
+                horizontal: kIsWeb ? 22 : 14,
+                vertical: kIsWeb ? 12 : 8,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Histórico'),
+          ),
+        ),
+        if (kIsWeb)
+          StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (_, snap) {
+              final logged = snap.data != null;
+              return Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: FilledButton(
+                  onPressed: () {
+                    if (logged) {
+                      setState(() => _currentIndex = 1);
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SignupOrSigninPageWrapper(),
+                        ),
+                      );
+                    }
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _cta,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(logged ? 'Minha Conta' : 'Login'),
+                ),
+              );
+            },
+          ),
+      ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(height: 1, color: _border.withOpacity(0.7)),
+      ),
+    );
   }
 
-  Future<void> _changeName() async {
-    final currentName = authService.value.currentUser?.displayName ?? '';
-    final ctrl = TextEditingController(text: currentName);
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'Alterar Nome',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        content: TextField(
-          controller: ctrl,
-          decoration: const InputDecoration(
-            hintText: 'Digite seu novo nome',
-            border: OutlineInputBorder(),
+  Widget _panels(bool isWide) {
+    final horizontalGap = isWide ? 32.0 : 12.0;
+    final blockPad = kIsWeb ? 28.0 : 20.0;
+
+    final leftPanel = Container(
+      decoration: BoxDecoration(
+        color: _layer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border),
+      ),
+      padding: EdgeInsets.all(blockPad),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Gerador de Imagens',
+            style: TextStyle(
+              color: _textMain,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-          textInputAction: TextInputAction.done,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+          SizedBox(height: kIsWeb ? 12 : 8),
+          Text(
+            'Defina as opções e descreva sua imagem.',
+            style: TextStyle(color: _textSub),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-            child: const Text('Salvar'),
+          SizedBox(height: kIsWeb ? 20 : 16),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: _tema,
+                  items: const [
+                    DropdownMenuItem(value: 'Física', child: Text('Física')),
+                    DropdownMenuItem(value: 'Química', child: Text('Química')),
+                  ],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    final subs = _subareasFor(v);
+                    setState(() {
+                      _tema = v;
+                      if (!subs.contains(_sub)) {
+                        _sub = subs.first;
+                      }
+                    });
+                  },
+                  decoration: _decSelect('Tema'),
+                  dropdownColor: _fieldBg,
+                  style: TextStyle(color: _textMain),
+                ),
+              ),
+              SizedBox(width: horizontalGap),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: _sub,
+                  items: _subareasFor(_tema)
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _sub = v!),
+                  decoration: _decSelect('Subárea'),
+                  dropdownColor: _fieldBg,
+                  style: TextStyle(color: _textMain),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: kIsWeb ? 16 : 12),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: _estilo,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'Vetorial',
+                      child: Text('Vetorial'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Realista',
+                      child: Text('Realista'),
+                    ),
+                    DropdownMenuItem(value: 'Desenho', child: Text('Desenho')),
+                  ],
+                  onChanged: (v) => setState(() => _estilo = v!),
+                  decoration: _decSelect('Estilo'),
+                  dropdownColor: _fieldBg,
+                  style: TextStyle(color: _textMain),
+                ),
+              ),
+              SizedBox(width: horizontalGap),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: _aspect,
+                  items: const [
+                    DropdownMenuItem(value: '1:1', child: Text('1:1')),
+                    DropdownMenuItem(value: '4:3', child: Text('4:3')),
+                    DropdownMenuItem(value: '16:9', child: Text('16:9')),
+                  ],
+                  onChanged: (v) => setState(() => _aspect = v!),
+                  decoration: _decSelect('Proporção'),
+                  dropdownColor: _fieldBg,
+                  style: TextStyle(color: _textMain),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: kIsWeb ? 16 : 12),
+          Row(
+            children: [
+              Switch(
+                value: _didatico,
+                onChanged: (v) => setState(() => _didatico = v),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Modo Didático',
+                style: TextStyle(color: _textMain, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          SizedBox(height: kIsWeb ? 16 : 12),
+          TextFormField(
+            controller: _prompt,
+            maxLines: 4,
+            textInputAction: TextInputAction.done,
+            cursorColor: _cta,
+            style: TextStyle(
+              color: _dark ? Colors.white : const Color(0xff0B1220),
+            ),
+            decoration: _decInput(
+              label: 'Descreva sua imagem',
+              hint:
+                  'Ex: Diagrama de ligação covalente H–H com elétrons e rótulos claros',
+            ),
+            enableSuggestions: true,
+            autocorrect: true,
+            textCapitalization: TextCapitalization.sentences,
+          ),
+          SizedBox(height: kIsWeb ? 22 : 18),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _prompt,
+            builder: (_, v, __) {
+              final can = v.text.trim().isNotEmpty && !_loading;
+              return SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: can ? _generate : null,
+                  icon: _loading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.auto_fix_high),
+                  label: Text(_loading ? 'Gerando...' : 'Gerar Imagem'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _cta,
+                    disabledBackgroundColor: _dark
+                        ? const Color(0xff1B2A52)
+                        : const Color(0xffC8D7FE),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: kIsWeb ? 20 : 18),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
-    if (newName != null && newName != currentName) {
-      try {
-        await authService.value.currentUser?.updateDisplayName(newName);
-        await authService.value.currentUser?.reload();
-        setState(() {});
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Nome alterado com sucesso!')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Erro ao alterar nome: $e')));
-        }
-      }
+
+    final rightPanel = Container(
+      decoration: BoxDecoration(
+        color: _layer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border),
+      ),
+      padding: EdgeInsets.all(blockPad),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Resultado',
+            style: TextStyle(
+              color: _textMain,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: kIsWeb ? 12 : 8),
+          Text(
+            'Sua imagem gerada aparecerá aqui',
+            style: TextStyle(color: _textSub),
+          ),
+          SizedBox(height: kIsWeb ? 16 : 12),
+          _preview == null
+              ? Container(
+                  height: kIsWeb ? 320 : 260,
+                  decoration: BoxDecoration(
+                    color: _fieldBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _fieldBorder),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Sem imagem ainda',
+                      style: TextStyle(color: _textSub),
+                    ),
+                  ),
+                )
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: _preview!.startsWith('data:image/')
+                        ? Image.memory(
+                            base64Decode(_preview!.split(',').last),
+                            fit: BoxFit.cover,
+                          )
+                        : Image.network(_preview!, fit: BoxFit.cover),
+                  ),
+                ),
+          SizedBox(height: kIsWeb ? 20 : 16),
+          Row(
+            children: [
+              FilledButton.tonal(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HistoryPage()),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _dark
+                      ? const Color(0xff1F2937)
+                      : const Color(0xffE9EEF9),
+                  foregroundColor: _textMain,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: kIsWeb ? 18 : 16,
+                    vertical: kIsWeb ? 16 : 14,
+                  ),
+                ),
+                child: const Text('Ver histórico'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (isWide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: leftPanel),
+          const SizedBox(width: 32),
+          Expanded(child: rightPanel),
+        ],
+      );
+    } else {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [leftPanel, const SizedBox(height: 24), rightPanel],
+      );
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final destinations = [
-      const NavigationDestination(
-        icon: Icon(Icons.home_rounded),
-        label: 'Criar',
-      ),
-      const NavigationDestination(
-        icon: Icon(Icons.person_rounded),
-        label: 'Minha Conta',
-      ),
-      if (_isAdmin)
-        const NavigationDestination(
-          icon: Icon(Icons.shield_moon_outlined),
-          label: 'Admin',
-        ),
-    ];
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 76,
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: SvgPicture.asset(Vectors.logo, height: 52, width: 52),
-        ),
-      ),
-      body: _currentIndex == 0
-          ? _homeScreen()
-          : _currentIndex == 1
-          ? _accountScreen()
-          : const AdminPage(),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) {
-          setState(() => _currentIndex = i);
-          if (i == 0) {
-            _anim.reset();
-            _anim.forward();
-          }
-        },
-        destinations: destinations,
-      ),
-    );
-  }
+  Widget _createBody() {
+    final w = MediaQuery.of(context).size.width;
+    final isWide = w >= 960;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final heroTopPad = kIsWeb ? 64.0 : 40.0;
+    final heroSidePad = kIsWeb ? 32.0 : 28.0;
+    final heroBottomPad = kIsWeb ? 40.0 : 36.0;
+    final heroTitleSize = kIsWeb ? 56.0 : 36.0;
 
-  Widget _homeScreen() {
-    final uid = authService.value.currentUser?.uid;
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFEFF7FB), Color(0xFFF8F6F4)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: SizedBox(height: MediaQuery.of(context).padding.top + 110),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 25),
-                child: FadeTransition(
-                  opacity: _fade,
-                  child: SlideTransition(
-                    position: _slide,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Crie sua imagem educativa',
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.dark,
-                            height: 1.1,
-                          ),
+    return SafeArea(
+      bottom: false,
+      child: SingleChildScrollView(
+        controller: _scroll,
+        padding: EdgeInsets.only(bottom: bottomInset + 16),
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                heroSidePad,
+                heroTopPad,
+                heroSidePad,
+                heroBottomPad,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Onde Ideias Viram\nImagens Educacionais',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _textMain,
+                          fontSize: heroTitleSize,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                          letterSpacing: -0.8,
                         ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Defina o tema, a subárea e o estilo. Depois descreva a imagem.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                            height: 1.3,
-                          ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Gere ilustrações educativas com aparência profissional para Física e Química. Simples, rápido e preciso.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _textSub,
+                          fontSize: 16,
+                          height: 1.5,
                         ),
-                        const SizedBox(height: 16),
-                        ControlsCard(
-                          selectedTemaLabel: selectedTemaLabel,
-                          selectedSubareaLabel: selectedSubareaLabel,
-                          selectedEstiloLabel: selectedEstiloLabel,
-                          selectedAspect: selectedAspect,
-                          modoDidatico: modoDidatico,
-                          onTemaChanged: (v) {
-                            setState(() {
-                              selectedTemaLabel = v;
-                              selectedSubareaLabel = subareaLabelsForTemaValue(
-                                temaValueFromLabel(selectedTemaLabel),
-                              ).first;
-                            });
-                          },
-                          onSubareaChanged: (v) =>
-                              setState(() => selectedSubareaLabel = v),
-                          onEstiloChanged: (v) =>
-                              setState(() => selectedEstiloLabel = v),
-                          onAspectChanged: (v) =>
-                              setState(() => selectedAspect = v),
-                          onModoDidaticoChanged: (v) =>
-                              setState(() => modoDidatico = v),
-                        ),
-                        const SizedBox(height: 16),
-                        PromptCard(
-                          controller: _promptController,
-                          onGenerate: _isGenerating ? () {} : _generateImage,
-                          isGenerating: _isGenerating,
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Histórico',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xff383838),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 320),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeOutCubic,
-                  child: uid == null
-                      ? const SizedBox.shrink()
-                      : RemoteHistoryGrid(key: ValueKey(uid), uid: uid),
+            Container(
+              key: _genKey,
+              padding: EdgeInsets.fromLTRB(
+                heroSidePad,
+                0,
+                heroSidePad,
+                kIsWeb ? 64 : 48,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: _panels(isWide),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                heroSidePad,
+                16,
+                heroSidePad,
+                kIsWeb ? 36 : 28,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Column(
+                    children: [
+                      Text(
+                        'EduImage • Ferramenta para criação de imagens educacionais',
+                        style: TextStyle(color: _textSub),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Física • Química',
+                        style: TextStyle(
+                          color: _dark
+                              ? const Color(0xff6F7891)
+                              : const Color(0xff6A768F),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -416,185 +674,320 @@ class _HomeState extends State<HomePage> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _accountScreen() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFEFF7FB), Color(0xFFF8F6F4)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+  Future<void> _sendVerification() async {
+    final u = FirebaseAuth.instance.currentUser;
+    if (u == null) return;
+    await u.sendEmailVerification();
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Verificação enviada.')));
+  }
+
+  Future<void> _sendReset() async {
+    final u = FirebaseAuth.instance.currentUser;
+    final email = u?.email;
+    if (email == null || email.isEmpty) return;
+    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Email de redefinição enviado.')),
+    );
+  }
+
+  Widget _accountBody() {
+    final isWeb = kIsWeb;
+    final side = isWeb ? 32.0 : 20.0;
+    final maxW = isWeb ? 900.0 : double.infinity;
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
         ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: FutureBuilder<int>(
-            future: _countImages(),
-            builder: (context, snap) {
-              final total = snap.data ?? 0;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxW),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: side, vertical: 24),
+              child: Column(
                 children: [
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   CircleAvatar(
                     radius: 50,
-                    backgroundColor: AppColors.blue,
+                    backgroundColor: _cta,
                     child: const Icon(
                       Icons.person,
                       size: 60,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
                   Text(
-                    authService.value.currentUser?.displayName ?? 'Usuário',
-                    style: const TextStyle(
+                    FirebaseAuth.instance.currentUser?.displayName ?? 'Usuário',
+                    style: TextStyle(
+                      color: _textMain,
                       fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      height: 1.1,
+                      fontWeight: FontWeight.w600,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    authService.value.currentUser?.email ?? '',
-                    style: const TextStyle(color: Colors.grey, fontSize: 15),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    FirebaseAuth.instance.currentUser?.email ?? '',
+                    style: TextStyle(color: _textSub, fontSize: 16),
                   ),
-                  const SizedBox(height: 22),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.4),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.06),
-                              blurRadius: 18,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
+                  const SizedBox(height: 28),
+                  LayoutBuilder(
+                    builder: (_, c) {
+                      final wide = c.maxWidth >= 720;
+                      final cross = wide ? 2 : 1;
+                      return GridView(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: cross,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: wide ? 3.8 : 3.2,
                         ),
-                        child: Column(
-                          children: [
-                            ListTile(
-                              leading: Icon(Icons.edit, color: AppColors.blue),
-                              title: const Text('Alterar nome'),
-                              onTap: _changeName,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _layer,
+                              border: Border.all(color: _border),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            const Divider(height: 1),
-                            ListTile(
-                              leading: const Icon(Icons.verified_outlined),
-                              title: const Text('Verificar e-mail'),
-                              subtitle: const Text(
-                                'Enviar link de verificação',
+                            padding: const EdgeInsets.all(16),
+                            child: ListTile(
+                              leading: Icon(Icons.image, color: _textMain),
+                              title: Text(
+                                'Ver histórico salvo',
+                                style: TextStyle(
+                                  color: _textMain,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                              onTap: () async {
-                                try {
-                                  await authService.value
-                                      .sendEmailVerification();
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'E-mail de verificação enviado.',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Erro: $e')),
-                                    );
-                                  }
-                                }
-                              },
-                            ),
-                            const Divider(height: 1),
-                            ListTile(
-                              leading: const Icon(Icons.lock_reset),
-                              title: const Text('Redefinir senha'),
-                              subtitle: const Text(
-                                'Enviar e-mail de redefinição',
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const HistoryPage(),
+                                ),
                               ),
-                              onTap: () async {
-                                final email =
-                                    authService.value.currentUser?.email;
-                                if (email == null || email.isEmpty) return;
-                                try {
-                                  await authService.value.sendPasswordReset(
-                                    email,
-                                  );
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'E-mail de redefinição enviado.',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Erro: $e')),
-                                    );
-                                  }
-                                }
-                              },
+                              trailing: const Icon(Icons.chevron_right),
                             ),
-                            const Divider(height: 1),
-                            ListTile(
-                              leading: const Icon(Icons.photo_library_outlined),
-                              title: const Text('Minhas imagens'),
-                              subtitle: Text('Total: $total'),
-                              onTap: () {
-                                Navigator.push(
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _layer,
+                              border: Border.all(color: _border),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.mark_email_unread_outlined,
+                                color: _textMain,
+                              ),
+                              title: Text(
+                                'Enviar e-mail de verificação',
+                                style: TextStyle(
+                                  color: _textMain,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              onTap: _sendVerification,
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _layer,
+                              border: Border.all(color: _border),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            child: ListTile(
+                              leading: Icon(Icons.lock_reset, color: _textMain),
+                              title: Text(
+                                'Redefinir senha',
+                                style: TextStyle(
+                                  color: _textMain,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              onTap: _sendReset,
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+                          ),
+                          if (_isAdmin)
+                            Container(
+                              decoration: BoxDecoration(
+                                color: _layer,
+                                border: Border.all(color: _border),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              padding: const EdgeInsets.all(16),
+                              child: ListTile(
+                                leading: Icon(
+                                  Icons.admin_panel_settings,
+                                  color: _textMain,
+                                ),
+                                title: Text(
+                                  'Área do Administrador',
+                                  style: TextStyle(
+                                    color: _textMain,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => const HistoryPage(),
+                                    builder: (_) =>
+                                        AdminPage(darkInitial: _dark),
                                   ),
-                                );
-                              },
+                                ),
+                                trailing: const Icon(Icons.chevron_right),
+                              ),
                             ),
-                            const Divider(height: 1),
-                            ListTile(
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _layer,
+                              border: Border.all(color: _border),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            child: ListTile(
                               leading: const Icon(
                                 Icons.logout,
-                                color: Colors.red,
+                                color: Colors.redAccent,
                               ),
-                              title: const Text('Sair'),
+                              title: Text(
+                                'Sair',
+                                style: TextStyle(
+                                  color: _textMain,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                               onTap: () async {
-                                await authService.value.signOut();
+                                await FirebaseAuth.instance.signOut();
                                 if (!mounted) return;
                                 Navigator.of(context).pushAndRemoveUntil(
                                   MaterialPageRoute(
-                                    builder: (_) => const SplashPage(),
+                                    builder: (_) => const HomePage(),
                                   ),
                                   (route) => false,
                                 );
                               },
+                              trailing: const Icon(Icons.chevron_right),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
+                  const SizedBox(height: 24),
                 ],
-              );
-            },
+              ),
+            ),
           ),
         ),
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final showBottomNav = !kIsWeb;
+    final items = <BottomNavigationBarItem>[
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.home_rounded),
+        label: 'Criar',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.person_rounded),
+        label: 'Minha Conta',
+      ),
+      if (_isAdmin)
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.admin_panel_settings),
+          label: 'Admin',
+        ),
+    ];
+    return Scaffold(
+      backgroundColor: _bg,
+      resizeToAvoidBottomInset: true,
+      appBar: _appBar(),
+      body: _currentIndex == 0
+          ? _createBody()
+          : _currentIndex == 1
+          ? _accountBody()
+          : AdminPage(darkInitial: _dark),
+      bottomNavigationBar: showBottomNav
+          ? BottomNavigationBar(
+              currentIndex: _currentIndex.clamp(0, items.length - 1),
+              onTap: (i) => setState(() => _currentIndex = i),
+              backgroundColor: _layer,
+              selectedItemColor: _cta,
+              unselectedItemColor: _textSub,
+              items: items,
+            )
+          : null,
+    );
+  }
+
+  InputDecoration _decSelect(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: _textSub),
+      filled: true,
+      fillColor: _fieldBg,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _fieldBorder),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _fieldBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _cta, width: 1.4),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+  }
+
+  InputDecoration _decInput({required String label, required String hint}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      labelStyle: TextStyle(color: _textSub),
+      hintStyle: TextStyle(
+        color: _dark ? const Color(0xff9AA3B6) : const Color(0xff8A93A6),
+      ),
+      filled: true,
+      fillColor: _fieldBg,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _fieldBorder),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _fieldBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _cta, width: 1.4),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    );
+  }
+}
+
+class SignupOrSigninPageWrapper extends StatelessWidget {
+  const SignupOrSigninPageWrapper({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const SignupOrSignin();
   }
 }

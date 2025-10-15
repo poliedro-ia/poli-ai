@@ -38,9 +38,9 @@ class LocalHistoryGrid extends StatelessWidget {
       builder: (context, constraints) {
         final w = constraints.maxWidth;
         int cross = 1;
-        if (w >= 1100)
+        if (w >= 1100) {
           cross = 3;
-        else if (w >= 700)
+        } else if (w >= 700)
           cross = 2;
         return GridView.builder(
           shrinkWrap: true,

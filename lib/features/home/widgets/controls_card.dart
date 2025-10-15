@@ -77,7 +77,7 @@ class ControlsCard extends StatelessWidget {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       isExpanded: true,
-                      value: selectedTemaLabel,
+                      initialValue: selectedTemaLabel,
                       items: temaOptions
                           .map(
                             (e) => DropdownMenuItem(
@@ -108,7 +108,7 @@ class ControlsCard extends StatelessWidget {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       isExpanded: true,
-                      value: subLabels.contains(selectedSubareaLabel)
+                      initialValue: subLabels.contains(selectedSubareaLabel)
                           ? selectedSubareaLabel
                           : subLabels.first,
                       items: subLabels
@@ -148,7 +148,7 @@ class ControlsCard extends StatelessWidget {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       isExpanded: true,
-                      value: selectedEstiloLabel,
+                      initialValue: selectedEstiloLabel,
                       items: estiloOptions
                           .map(
                             (e) => DropdownMenuItem(
@@ -179,7 +179,7 @@ class ControlsCard extends StatelessWidget {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       isExpanded: true,
-                      value: selectedAspect,
+                      initialValue: selectedAspect,
                       items: aspectos
                           .map(
                             (e) => DropdownMenuItem(
@@ -216,7 +216,7 @@ class ControlsCard extends StatelessWidget {
                     Switch(
                       value: modoDidatico,
                       onChanged: onModoDidaticoChanged,
-                      activeColor: AppColors.lightBlue,
+                      activeThumbColor: AppColors.lightBlue,
                     ),
                     const SizedBox(width: 8),
                     const Text(
