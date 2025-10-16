@@ -1,10 +1,14 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 
 class HistoryService {
-  Future<String> saveGenerated({
+  final _db = FirebaseFirestore.instance;
+  final _storage = FirebaseStorage.instance;
+
+  Future<void> saveGenerated({
     required String uid,
     required String src,
     String? model,
@@ -15,53 +19,18 @@ class HistoryService {
     String? temaResolvido,
     String? subareaResolvida,
   }) async {
-    final now = DateTime.now();
-    final y = now.year.toString().padLeft(4, '0');
-    final m = now.month.toString().padLeft(2, '0');
-    final d = now.day.toString().padLeft(2, '0');
-    final ts = now.millisecondsSinceEpoch;
-
-    final isDataUrl = src.startsWith('data:image/');
-    String storagePath;
-    Uint8List bytes;
-
-    if (isDataUrl) {
-      final header = src.substring(0, src.indexOf(','));
-      final ext = header.contains('image/png')
-          ? 'png'
-          : header.contains('image/jpeg')
-          ? 'jpg'
-          : 'png';
-      final b64 = src.split(',').last;
-      bytes = base64Decode(b64);
-      storagePath = 'images/$uid/$y/$m/$d/$ts.$ext';
-    } else {
-      bytes = Uint8List(0);
-      storagePath = 'images/$uid/$y/$m/$d/$ts.png';
+    String finalUrl = src;
+    if (src.startsWith('data:image/')) {
+      final bytes = base64Decode(src.split(',').last);
+      final id = _randId();
+      final path = 'users/$uid/images/$id.png';
+      final ref = _storage.ref().child(path);
+      await ref.putData(bytes, SettableMetadata(contentType: 'image/png'));
+      finalUrl = await ref.getDownloadURL();
     }
-
-    String downloadUrl;
-    if (isDataUrl) {
-      final ref = FirebaseStorage.instance.ref(storagePath);
-      final meta = SettableMetadata(
-        contentType: storagePath.endsWith('.jpg') ? 'image/jpeg' : 'image/png',
-      );
-      await ref.putData(bytes, meta);
-      downloadUrl = await ref.getDownloadURL();
-    } else {
-      downloadUrl = src;
-    }
-
-    final docRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('images')
-        .doc();
-
-    await docRef.set({
-      'createdAt': FieldValue.serverTimestamp(),
-      'downloadUrl': downloadUrl,
-      'storagePath': isDataUrl ? storagePath : null,
+    final col = _db.collection('users').doc(uid).collection('images');
+    await col.add({
+      'src': finalUrl,
       'model': model,
       'prompt': prompt,
       'aspectRatio': aspectRatio,
@@ -69,38 +38,37 @@ class HistoryService {
       'subareaSelecionada': subareaSelecionada,
       'temaResolvido': temaResolvido,
       'subareaResolvida': subareaResolvida,
+      'createdAt': FieldValue.serverTimestamp(),
     });
-
-    return docRef.id;
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> userImagesStream(String uid) {
-    return FirebaseFirestore.instance
+  Stream<List<Map<String, dynamic>>> streamUserImages(String uid) {
+    final q = _db
         .collection('users')
         .doc(uid)
         .collection('images')
         .orderBy('createdAt', descending: true)
-        .snapshots();
+        .limit(200);
+    return q.snapshots().map((snap) {
+      return snap.docs.map((d) {
+        final data = d.data();
+        return {
+          'id': d.id,
+          'src': data['src'] as String? ?? '',
+          'model': data['model'],
+          'prompt': data['prompt'],
+          'aspectRatio': data['aspectRatio'],
+          'temaSelecionado': data['temaSelecionado'],
+          'subareaSelecionada': data['subareaSelecionada'],
+          'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
+        };
+      }).toList();
+    });
   }
 
-  Future<void> deleteImage({required String uid, required String docId}) async {
-    final docRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('images')
-        .doc(docId);
-    final snap = await docRef.get();
-    if (!snap.exists) {
-      await docRef.delete();
-      return;
-    }
-    final data = snap.data() ?? {};
-    final path = data['storagePath'] as String?;
-    if (path != null && path.isNotEmpty) {
-      try {
-        await FirebaseStorage.instance.ref(path).delete();
-      } catch (_) {}
-    }
-    await docRef.delete();
+  String _randId() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final r = Random.secure();
+    return List.generate(20, (_) => chars[r.nextInt(chars.length)]).join();
   }
 }

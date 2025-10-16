@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:app/core/configs/assets/images.dart';
+import 'package:app/common/widgets/smart_image.dart';
 import 'package:app/features/auth/pages/signup_or_signin_page.dart';
 import 'package:app/features/history/history_service.dart';
 import 'package:app/features/history/history_page.dart';
@@ -75,6 +76,50 @@ class _HomeState extends State<HomePage> {
     }
   }
 
+  String _temaSlug(String label) {
+    return label == 'Física' ? 'fisica' : 'quimica';
+  }
+
+  String _subSlug(String temaLabel, String subLabel) {
+    final t = _temaSlug(temaLabel);
+    if (t == 'fisica') {
+      switch (subLabel) {
+        case 'Eletricidade':
+          return 'eletricidade';
+        case 'Mecânica':
+          return 'mecanica';
+        case 'Óptica':
+          return 'optica';
+        case 'Termodinâmica':
+          return 'termodinamica';
+      }
+    } else {
+      switch (subLabel) {
+        case 'Ligações':
+          return 'ligacoes';
+        case 'Reações':
+          return 'reacoes';
+        case 'Estrutura':
+          return 'estrutura';
+        case 'Estequiometria':
+          return 'estequiometria';
+      }
+    }
+    return subLabel.toLowerCase();
+  }
+
+  String _estiloSlug(String label) {
+    switch (label) {
+      case 'Vetorial':
+        return 'vetorial';
+      case 'Realista':
+        return 'realista';
+      case 'Desenho':
+        return 'desenho';
+    }
+    return label.toLowerCase();
+  }
+
   Future<void> _scrollToGen() async {
     final ctx = _genKey.currentContext;
     if (ctx == null) return;
@@ -100,7 +145,7 @@ class _HomeState extends State<HomePage> {
       if (kIsWeb) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const SignupOrSigninPageWrapper()),
+          MaterialPageRoute(builder: (_) => const SignupOrSignin()),
         );
         return;
       } else {
@@ -141,9 +186,9 @@ class _HomeState extends State<HomePage> {
         region: 'southamerica-east1',
       ).httpsCallable('generateImage');
       final result = await callable.call({
-        'tema': _tema.toLowerCase(),
-        'subarea': _sub.toLowerCase(),
-        'estilo': _estilo.toLowerCase(),
+        'tema': _temaSlug(_tema),
+        'subarea': _subSlug(_tema, _sub),
+        'estilo': _estiloSlug(_estilo),
         'detalhes': texto,
         'aspectRatio': _aspect,
       });
@@ -158,15 +203,15 @@ class _HomeState extends State<HomePage> {
       }
       setState(() => _preview = dataUrl);
       await HistoryService().saveGenerated(
-        uid: user.uid,
+        uid: user!.uid,
         src: dataUrl,
         model: data['model'] as String?,
         prompt: data['promptUsado'] as String? ?? texto,
         aspectRatio: _aspect,
         temaSelecionado: _tema,
         subareaSelecionada: _sub,
-        temaResolvido: _tema.toLowerCase(),
-        subareaResolvida: _sub.toLowerCase(),
+        temaResolvido: _temaSlug(_tema),
+        subareaResolvida: _subSlug(_tema, _sub),
       );
     } catch (e) {
       if (!mounted) return;
@@ -230,7 +275,9 @@ class _HomeState extends State<HomePage> {
           child: FilledButton.tonal(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HistoryPage()),
+              MaterialPageRoute(
+                builder: (_) => HistoryPage(darkInitial: _dark),
+              ),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: _dark
@@ -263,7 +310,7 @@ class _HomeState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const SignupOrSigninPageWrapper(),
+                          builder: (_) => const SignupOrSignin(),
                         ),
                       );
                     }
@@ -515,12 +562,7 @@ class _HomeState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(16),
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: _preview!.startsWith('data:image/')
-                        ? Image.memory(
-                            base64Decode(_preview!.split(',').last),
-                            fit: BoxFit.cover,
-                          )
-                        : Image.network(_preview!, fit: BoxFit.cover),
+                    child: SmartImage(src: _preview!, fit: BoxFit.cover),
                   ),
                 ),
           SizedBox(height: kIsWeb ? 20 : 16),
@@ -529,7 +571,9 @@ class _HomeState extends State<HomePage> {
               FilledButton.tonal(
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const HistoryPage()),
+                  MaterialPageRoute(
+                    builder: (_) => HistoryPage(darkInitial: _dark),
+                  ),
                 ),
                 style: FilledButton.styleFrom(
                   backgroundColor: _dark
@@ -770,7 +814,8 @@ class _HomeState extends State<HomePage> {
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const HistoryPage(),
+                                  builder: (_) =>
+                                      HistoryPage(darkInitial: _dark),
                                 ),
                               ),
                               trailing: const Icon(Icons.chevron_right),
@@ -981,13 +1026,5 @@ class _HomeState extends State<HomePage> {
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     );
-  }
-}
-
-class SignupOrSigninPageWrapper extends StatelessWidget {
-  const SignupOrSigninPageWrapper({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const SignupOrSignin();
   }
 }
