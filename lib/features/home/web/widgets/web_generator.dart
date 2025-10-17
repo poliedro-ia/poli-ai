@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:app/core/configs/theme/colors.dart';
 import 'package:app/features/home/options.dart';
 
 class WebGenerator extends StatelessWidget {

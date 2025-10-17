@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
@@ -33,6 +32,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
   Color get _textSub =>
       _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
+  // ignore: unused_element
   Color get _fieldBg => _dark ? const Color(0xff0F1220) : Colors.white;
   Color get _fieldBorder =>
       _dark ? const Color(0xff23263A) : const Color(0xffD8DEE9);

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_functions/cloud_functions.dart';
@@ -120,6 +119,7 @@ class _HomeState extends State<HomePage> {
     return label.toLowerCase();
   }
 
+  // ignore: unused_element
   Future<void> _scrollToGen() async {
     final ctx = _genKey.currentContext;
     if (ctx == null) return;
@@ -203,7 +203,7 @@ class _HomeState extends State<HomePage> {
       }
       setState(() => _preview = dataUrl);
       await HistoryService().saveGenerated(
-        uid: user!.uid,
+        uid: user.uid,
         src: dataUrl,
         model: data['model'] as String?,
         prompt: data['promptUsado'] as String? ?? texto,
