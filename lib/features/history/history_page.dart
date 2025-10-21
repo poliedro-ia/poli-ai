@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/common/widgets/smart_image.dart';
-import 'package:app/core/utils/media_utils.dart';
 import 'package:app/features/home/home_page.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -31,6 +30,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
   Color get _textSub =>
       _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
+  Color get _cta => const Color(0xff2563EB);
   Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
 
   PreferredSizeWidget _appBar() {
@@ -163,15 +163,14 @@ class _HistoryPageState extends State<HistoryPage> {
           builder: (context, c) {
             final w = c.maxWidth;
             int cross = 2;
-            if (w >= 1400) {
+            if (w >= 1400)
               cross = 6;
-            } else if (w >= 1200) {
+            else if (w >= 1200)
               cross = 5;
-            } else if (w >= 900) {
+            else if (w >= 900)
               cross = 4;
-            } else if (w >= 640) {
+            else if (w >= 640)
               cross = 3;
-            }
             return GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -183,8 +182,13 @@ class _HistoryPageState extends State<HistoryPage> {
               itemCount: docs.length,
               itemBuilder: (_, i) {
                 final d = docs[i].data();
-                final src = (d['src'] as String?) ?? '';
-                final prompt = (d['prompt'] as String?) ?? '';
+                final src =
+                    (d['downloadUrl'] as String?) ??
+                    (d['storagePath'] as String?) ??
+                    (d['src'] as String? ?? '');
+                final prompt =
+                    (d['prompt'] as String?) ??
+                    (d['promptUsado'] as String? ?? '');
                 final model = (d['model'] as String?) ?? '';
                 return _imageCard(src, prompt, model, i);
               },
@@ -228,8 +232,11 @@ class _HistoryPageState extends State<HistoryPage> {
                       ),
                       IconButton(
                         onPressed: () async {
-                          await downloadImage(src, filename: 'eduimage_$index');
-                          if (context.mounted) {
+                          await SmartImage.download(
+                            src,
+                            filename: 'eduimage_$index.png',
+                          );
+                          if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Imagem salva.')),
                             );

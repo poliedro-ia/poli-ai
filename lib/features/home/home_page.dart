@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:app/common/utils/storage_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_functions/cloud_functions.dart';
@@ -74,7 +76,6 @@ class _HomeState extends State<HomePage> {
     }
   }
 
-
   Future<void> _generate() async {
     final detalhesBase = _prompt.text.trim();
     if (detalhesBase.isEmpty) {
@@ -89,7 +90,7 @@ class _HomeState extends State<HomePage> {
       if (kIsWeb) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
+          MaterialPageRoute(builder: (_) => const SignupOrSignin()),
         );
         return;
       } else {
@@ -121,11 +122,13 @@ class _HomeState extends State<HomePage> {
         return;
       }
     }
+
     setState(() => _loading = true);
     try {
       final texto = _didatico
           ? '$detalhesBase. Use rótulos claros, alto contraste, sem marcas, fundo neutro, texto legível, setas para indicar relações e grandezas quando necessário.'
           : detalhesBase;
+
       final callable = FirebaseFunctions.instanceFor(
         region: 'southamerica-east1',
       ).httpsCallable('generateImage');
@@ -136,26 +139,42 @@ class _HomeState extends State<HomePage> {
         'detalhes': texto,
         'aspectRatio': _aspect,
       });
+
       final data = Map<String, dynamic>.from(result.data as Map);
-      final downloadUrl = data['downloadUrl'] as String?;
-      final storagePath = data['storagePath'] as String?;
-      if (downloadUrl == null || downloadUrl.isEmpty) {
+      final dataUrl = data['imageDataUrl'] as String?;
+      if (dataUrl == null || dataUrl.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Não foi possível gerar a imagem.')),
         );
         return;
       }
-      setState(() => _preview = downloadUrl);
+
+      // exibe preview local (dataUrl)
+      setState(() => _preview = dataUrl);
+
+      // upload para Storage + registro no Firestore
+      final b64 = dataUrl.split(',').last;
+      final bytes = base64Decode(b64);
+      final now = DateTime.now();
+      final ts = now.millisecondsSinceEpoch.toString();
+      final path =
+          'users/${user.uid}/images/${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}/$ts.png';
+
+      final downloadUrl = await StorageUtils.uploadPngBytes(
+        bytes: bytes,
+        storagePath: path,
+      );
+
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .collection('images')
           .add({
             'src': downloadUrl,
-            'storagePath': storagePath,
-            'model': data['model'],
-            'prompt': data['promptUsado'] ?? texto,
+            'path': path,
+            'model': data['model'] as String? ?? '',
+            'prompt': data['promptUsado'] as String? ?? texto,
             'aspectRatio': _aspect,
             'temaSelecionado': _tema,
             'subareaSelecionada': _sub,
@@ -255,11 +274,13 @@ class _HomeState extends State<HomePage> {
                 child: FilledButton(
                   onPressed: () {
                     if (logged) {
-                      setState(() => _currentIndex = 1);
+                      setState(() => _currentIndex = 1); // Minha Conta
                     } else {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const HomePage()),
+                        MaterialPageRoute(
+                          builder: (_) => const SignupOrSignin(),
+                        ),
                       );
                     }
                   },
@@ -319,7 +340,7 @@ class _HomeState extends State<HomePage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _tema,
+                  initialValue: _tema,
                   items: const [
                     DropdownMenuItem(value: 'Física', child: Text('Física')),
                     DropdownMenuItem(value: 'Química', child: Text('Química')),
@@ -343,7 +364,7 @@ class _HomeState extends State<HomePage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _sub,
+                  initialValue: _sub,
                   items: _subareasFor(_tema)
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
@@ -361,7 +382,7 @@ class _HomeState extends State<HomePage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _estilo,
+                  initialValue: _estilo,
                   items: const [
                     DropdownMenuItem(
                       value: 'Vetorial',
@@ -383,7 +404,7 @@ class _HomeState extends State<HomePage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _aspect,
+                  initialValue: _aspect,
                   items: const [
                     DropdownMenuItem(value: '1:1', child: Text('1:1')),
                     DropdownMenuItem(value: '4:3', child: Text('4:3')),
