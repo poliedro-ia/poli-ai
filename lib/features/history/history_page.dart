@@ -4,9 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:app/core/configs/assets/images.dart';
-import 'package:app/core/utils/media_utils.dart';
 import 'package:app/common/widgets/smart_image.dart';
-import 'package:app/features/auth/pages/signup_or_signin_page.dart';
+import 'package:app/core/utils/media_utils.dart';
 import 'package:app/features/home/home_page.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -32,11 +31,6 @@ class _HistoryPageState extends State<HistoryPage> {
   Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
   Color get _textSub =>
       _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
-  // ignore: unused_element
-  Color get _fieldBg => _dark ? const Color(0xff0F1220) : Colors.white;
-  Color get _fieldBorder =>
-      _dark ? const Color(0xff23263A) : const Color(0xffD8DEE9);
-  Color get _cta => const Color(0xff2563EB);
   Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
 
   PreferredSizeWidget _appBar() {
@@ -124,23 +118,6 @@ class _HistoryPageState extends State<HistoryPage> {
               'Suas imagens geradas aparecerão aqui.',
               style: TextStyle(color: _textSub),
             ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SignupOrSignin()),
-                );
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: _cta,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
-                ),
-              ),
-              child: const Text('Login/Registrar'),
-            ),
           ],
         ),
       ),
@@ -186,14 +163,15 @@ class _HistoryPageState extends State<HistoryPage> {
           builder: (context, c) {
             final w = c.maxWidth;
             int cross = 2;
-            if (w >= 1400)
+            if (w >= 1400) {
               cross = 6;
-            else if (w >= 1200)
+            } else if (w >= 1200) {
               cross = 5;
-            else if (w >= 900)
+            } else if (w >= 900) {
               cross = 4;
-            else if (w >= 640)
+            } else if (w >= 640) {
               cross = 3;
+            }
             return GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -339,7 +317,7 @@ class _HistoryPageState extends State<HistoryPage> {
       decoration: BoxDecoration(
         color: _dark ? const Color(0xff0F1220) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _fieldBorder),
+        border: Border.all(color: _border),
       ),
       padding: const EdgeInsets.all(14),
       child: Column(

@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:app/core/configs/assets/images.dart';
-import 'package:app/common/widgets/smart_image.dart';
 import 'package:app/features/auth/pages/signup_or_signin_page.dart';
-import 'package:app/features/history/history_service.dart';
 import 'package:app/features/history/history_page.dart';
 import 'package:app/features/admin/admin_page.dart';
 
@@ -75,61 +74,6 @@ class _HomeState extends State<HomePage> {
     }
   }
 
-  String _temaSlug(String label) {
-    return label == 'Física' ? 'fisica' : 'quimica';
-  }
-
-  String _subSlug(String temaLabel, String subLabel) {
-    final t = _temaSlug(temaLabel);
-    if (t == 'fisica') {
-      switch (subLabel) {
-        case 'Eletricidade':
-          return 'eletricidade';
-        case 'Mecânica':
-          return 'mecanica';
-        case 'Óptica':
-          return 'optica';
-        case 'Termodinâmica':
-          return 'termodinamica';
-      }
-    } else {
-      switch (subLabel) {
-        case 'Ligações':
-          return 'ligacoes';
-        case 'Reações':
-          return 'reacoes';
-        case 'Estrutura':
-          return 'estrutura';
-        case 'Estequiometria':
-          return 'estequiometria';
-      }
-    }
-    return subLabel.toLowerCase();
-  }
-
-  String _estiloSlug(String label) {
-    switch (label) {
-      case 'Vetorial':
-        return 'vetorial';
-      case 'Realista':
-        return 'realista';
-      case 'Desenho':
-        return 'desenho';
-    }
-    return label.toLowerCase();
-  }
-
-  // ignore: unused_element
-  Future<void> _scrollToGen() async {
-    final ctx = _genKey.currentContext;
-    if (ctx == null) return;
-    await Scrollable.ensureVisible(
-      ctx,
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOutCubic,
-      alignment: 0,
-    );
-  }
 
   Future<void> _generate() async {
     final detalhesBase = _prompt.text.trim();
@@ -145,7 +89,7 @@ class _HomeState extends State<HomePage> {
       if (kIsWeb) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const SignupOrSignin()),
+          MaterialPageRoute(builder: (_) => const HomePage()),
         );
         return;
       } else {
@@ -186,33 +130,39 @@ class _HomeState extends State<HomePage> {
         region: 'southamerica-east1',
       ).httpsCallable('generateImage');
       final result = await callable.call({
-        'tema': _temaSlug(_tema),
-        'subarea': _subSlug(_tema, _sub),
-        'estilo': _estiloSlug(_estilo),
+        'tema': _tema.toLowerCase(),
+        'subarea': _sub.toLowerCase(),
+        'estilo': _estilo.toLowerCase(),
         'detalhes': texto,
         'aspectRatio': _aspect,
       });
       final data = Map<String, dynamic>.from(result.data as Map);
-      final dataUrl = data['imageDataUrl'] as String?;
-      if (dataUrl == null || dataUrl.isEmpty) {
+      final downloadUrl = data['downloadUrl'] as String?;
+      final storagePath = data['storagePath'] as String?;
+      if (downloadUrl == null || downloadUrl.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Não foi possível gerar a imagem.')),
         );
         return;
       }
-      setState(() => _preview = dataUrl);
-      await HistoryService().saveGenerated(
-        uid: user.uid,
-        src: dataUrl,
-        model: data['model'] as String?,
-        prompt: data['promptUsado'] as String? ?? texto,
-        aspectRatio: _aspect,
-        temaSelecionado: _tema,
-        subareaSelecionada: _sub,
-        temaResolvido: _temaSlug(_tema),
-        subareaResolvida: _subSlug(_tema, _sub),
-      );
+      setState(() => _preview = downloadUrl);
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('images')
+          .add({
+            'src': downloadUrl,
+            'storagePath': storagePath,
+            'model': data['model'],
+            'prompt': data['promptUsado'] ?? texto,
+            'aspectRatio': _aspect,
+            'temaSelecionado': _tema,
+            'subareaSelecionada': _sub,
+            'temaResolvido': _tema.toLowerCase(),
+            'subareaResolvida': _sub.toLowerCase(),
+            'createdAt': FieldValue.serverTimestamp(),
+          });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -309,9 +259,7 @@ class _HomeState extends State<HomePage> {
                     } else {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const SignupOrSignin(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const HomePage()),
                       );
                     }
                   },
@@ -562,7 +510,7 @@ class _HomeState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(16),
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: SmartImage(src: _preview!, fit: BoxFit.cover),
+                    child: Image.network(_preview!, fit: BoxFit.cover),
                   ),
                 ),
           SizedBox(height: kIsWeb ? 20 : 16),
