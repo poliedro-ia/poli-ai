@@ -1,12 +1,13 @@
 import 'dart:convert';
-import 'package:app/common/utils/storage_utils.dart';
+import 'package:app/core/configs/theme/theme_controller.dart';
+import 'package:app/features/auth/pages/login_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:app/core/configs/assets/images.dart';
+import 'package:app/core/utils/media_utils.dart';
 import 'package:app/features/auth/pages/signup_or_signin_page.dart';
 import 'package:app/features/history/history_page.dart';
 import 'package:app/features/admin/admin_page.dart';
@@ -30,7 +31,6 @@ class _HomeState extends State<HomePage> {
   bool _loading = false;
   String? _preview;
   int _currentIndex = 0;
-  bool _dark = true;
   bool _isAdmin = false;
 
   @override
@@ -55,18 +55,18 @@ class _HomeState extends State<HomePage> {
     super.dispose();
   }
 
-  Color get _bg => _dark ? const Color(0xff0B0E19) : const Color(0xffF7F8FA);
-  Color get _layer => _dark ? const Color(0xff121528) : Colors.white;
-  Color get _border =>
-      _dark ? const Color(0xff1E2233) : const Color(0xffE7EAF0);
-  Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
-  Color get _textSub =>
-      _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
-  Color get _fieldBg => _dark ? const Color(0xff0F1220) : Colors.white;
-  Color get _fieldBorder =>
-      _dark ? const Color(0xff23263A) : const Color(0xffD8DEE9);
+  Color _bg(bool d) => d ? const Color(0xff0B0E19) : const Color(0xffF7F8FA);
+  Color _layer(bool d) => d ? const Color(0xff121528) : Colors.white;
+  Color _border(bool d) =>
+      d ? const Color(0xff1E2233) : const Color(0xffE7EAF0);
+  Color _text(bool d) => d ? Colors.white : const Color(0xff0B1220);
+  Color _subText(bool d) =>
+      d ? const Color(0xff97A0B5) : const Color(0xff5A6477);
+  Color _fieldBg(bool d) => d ? const Color(0xff0F1220) : Colors.white;
+  Color _fieldBorder(bool d) =>
+      d ? const Color(0xff23263A) : const Color(0xffD8DEE9);
   Color get _cta => const Color(0xff2563EB);
-  Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
+  Color _bar(bool d) => d ? const Color(0xff101425) : Colors.white;
 
   List<String> _subareasFor(String tema) {
     if (tema == 'Física') {
@@ -87,42 +87,12 @@ class _HomeState extends State<HomePage> {
     }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      if (kIsWeb) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const SignupOrSignin()),
-        );
-        return;
-      } else {
-        await showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Entre para continuar'),
-            content: const Text(
-              'Faça login ou crie uma conta para gerar imagens.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SignupOrSignin()),
-                  );
-                },
-                child: const Text('Login/Registrar'),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SignupOrSignin()),
+      );
+      return;
     }
-
     setState(() => _loading = true);
     try {
       final texto = _didatico
@@ -149,38 +119,32 @@ class _HomeState extends State<HomePage> {
         );
         return;
       }
-
       setState(() => _preview = dataUrl);
 
       final b64 = dataUrl.split(',').last;
-      final bytes = Uint8List.fromList(base64Decode(b64));
+      final bytes = base64Decode(b64);
       final now = DateTime.now();
       final ts = now.millisecondsSinceEpoch.toString();
-
       final path =
-          'users/${user.uid}/images/${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}/$ts.png';
+          'images/${user.uid}/${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}/$ts.png';
 
-      final downloadUrl = await StorageUtils.uploadPngBytes(
-        bytes: bytes,
-        storagePath: path,
-      );
-
-      await FirebaseFirestore.instance
+      final ref = FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .collection('images')
-          .add({
-            'storagePath': path,
-            'downloadUrl': downloadUrl,
-            'model': data['model'] as String? ?? '',
-            'prompt': data['promptUsado'] as String? ?? texto,
-            'aspectRatio': _aspect,
-            'temaSelecionado': _tema,
-            'subareaSelecionada': _sub,
-            'temaResolvido': _tema.toLowerCase(),
-            'subareaResolvida': _sub.toLowerCase(),
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+          .collection('images');
+      await ref.add({
+        'downloadUrl': dataUrl,
+        'src': dataUrl,
+        'storagePath': path,
+        'model': data['model'] as String? ?? '',
+        'prompt': data['promptUsado'] as String? ?? texto,
+        'aspectRatio': _aspect,
+        'temaSelecionado': _tema,
+        'subareaSelecionada': _sub,
+        'temaResolvido': _tema.toLowerCase(),
+        'subareaResolvida': _sub.toLowerCase(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -191,9 +155,9 @@ class _HomeState extends State<HomePage> {
     }
   }
 
-  PreferredSizeWidget _appBar() {
+  PreferredSizeWidget _appBar(bool dark) {
     return AppBar(
-      backgroundColor: _barBg,
+      backgroundColor: _bar(dark),
       elevation: 0,
       automaticallyImplyLeading: false,
       toolbarHeight: kIsWeb ? 76 : kToolbarHeight,
@@ -210,7 +174,7 @@ class _HomeState extends State<HomePage> {
             );
           },
           child: Image.asset(
-            _dark ? Images.whiteLogo : Images.logo,
+            dark ? Images.whiteLogo : Images.logo,
             height: kIsWeb ? 100 : 82,
             width: kIsWeb ? 100 : 82,
           ),
@@ -220,16 +184,16 @@ class _HomeState extends State<HomePage> {
         Padding(
           padding: EdgeInsets.only(right: kIsWeb ? 10 : 6),
           child: IconButton(
-            tooltip: _dark ? 'Tema claro' : 'Tema escuro',
-            onPressed: () => setState(() => _dark = !_dark),
+            tooltip: dark ? 'Tema claro' : 'Tema escuro',
+            onPressed: () => ThemeController.instance.toggle(),
             icon: Icon(
-              _dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
-              color: _textMain,
+              dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
+              color: _text(dark),
               size: kIsWeb ? 24 : 22,
             ),
             style: IconButton.styleFrom(
               padding: const EdgeInsets.all(10),
-              backgroundColor: _dark
+              backgroundColor: dark
                   ? const Color(0x221E2A4A)
                   : const Color(0x22E9EEF9),
               shape: RoundedRectangleBorder(
@@ -243,15 +207,13 @@ class _HomeState extends State<HomePage> {
           child: FilledButton.tonal(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => HistoryPage(darkInitial: _dark),
-              ),
+              MaterialPageRoute(builder: (_) => const HistoryPage()),
             ),
             style: FilledButton.styleFrom(
-              backgroundColor: _dark
+              backgroundColor: dark
                   ? const Color(0xff1E2A4A)
                   : const Color(0xffE9EEF9),
-              foregroundColor: _textMain,
+              foregroundColor: _text(dark),
               padding: EdgeInsets.symmetric(
                 horizontal: kIsWeb ? 22 : 14,
                 vertical: kIsWeb ? 12 : 8,
@@ -273,18 +235,17 @@ class _HomeState extends State<HomePage> {
                 child: FilledButton(
                   onPressed: () {
                     if (logged) {
-                      setState(() => _currentIndex = 1); // Minha Conta
+                      setState(() => _currentIndex = 1);
                     } else {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const SignupOrSignin(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const Login()),
                       );
                     }
                   },
                   style: FilledButton.styleFrom(
                     backgroundColor: _cta,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 22,
                       vertical: 12,
@@ -301,20 +262,20 @@ class _HomeState extends State<HomePage> {
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: _border.withOpacity(0.7)),
+        child: Container(height: 1, color: _border(dark).withOpacity(0.7)),
       ),
     );
   }
 
-  Widget _panels(bool isWide) {
+  Widget _panels(bool isWide, bool dark) {
     final horizontalGap = isWide ? 32.0 : 12.0;
     final blockPad = kIsWeb ? 28.0 : 20.0;
 
     final leftPanel = Container(
       decoration: BoxDecoration(
-        color: _layer,
+        color: _layer(dark),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
+        border: Border.all(color: _border(dark)),
       ),
       padding: EdgeInsets.all(blockPad),
       child: Column(
@@ -323,7 +284,7 @@ class _HomeState extends State<HomePage> {
           Text(
             'Gerador de Imagens',
             style: TextStyle(
-              color: _textMain,
+              color: _text(dark),
               fontSize: 22,
               fontWeight: FontWeight.w800,
             ),
@@ -331,7 +292,7 @@ class _HomeState extends State<HomePage> {
           SizedBox(height: kIsWeb ? 12 : 8),
           Text(
             'Defina as opções e descreva sua imagem.',
-            style: TextStyle(color: _textSub),
+            style: TextStyle(color: _subText(dark)),
           ),
           SizedBox(height: kIsWeb ? 20 : 16),
           Row(
@@ -339,7 +300,7 @@ class _HomeState extends State<HomePage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  initialValue: _tema,
+                  value: _tema,
                   items: const [
                     DropdownMenuItem(value: 'Física', child: Text('Física')),
                     DropdownMenuItem(value: 'Química', child: Text('Química')),
@@ -349,28 +310,26 @@ class _HomeState extends State<HomePage> {
                     final subs = _subareasFor(v);
                     setState(() {
                       _tema = v;
-                      if (!subs.contains(_sub)) {
-                        _sub = subs.first;
-                      }
+                      if (!subs.contains(_sub)) _sub = subs.first;
                     });
                   },
-                  decoration: _decSelect('Tema'),
-                  dropdownColor: _fieldBg,
-                  style: TextStyle(color: _textMain),
+                  decoration: _decSelect('Tema', dark),
+                  dropdownColor: _fieldBg(dark),
+                  style: TextStyle(color: _text(dark)),
                 ),
               ),
               SizedBox(width: horizontalGap),
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  initialValue: _sub,
+                  value: _sub,
                   items: _subareasFor(_tema)
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
                   onChanged: (v) => setState(() => _sub = v!),
-                  decoration: _decSelect('Subárea'),
-                  dropdownColor: _fieldBg,
-                  style: TextStyle(color: _textMain),
+                  decoration: _decSelect('Subárea', dark),
+                  dropdownColor: _fieldBg(dark),
+                  style: TextStyle(color: _text(dark)),
                 ),
               ),
             ],
@@ -381,7 +340,7 @@ class _HomeState extends State<HomePage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  initialValue: _estilo,
+                  value: _estilo,
                   items: const [
                     DropdownMenuItem(
                       value: 'Vetorial',
@@ -394,25 +353,25 @@ class _HomeState extends State<HomePage> {
                     DropdownMenuItem(value: 'Desenho', child: Text('Desenho')),
                   ],
                   onChanged: (v) => setState(() => _estilo = v!),
-                  decoration: _decSelect('Estilo'),
-                  dropdownColor: _fieldBg,
-                  style: TextStyle(color: _textMain),
+                  decoration: _decSelect('Estilo', dark),
+                  dropdownColor: _fieldBg(dark),
+                  style: TextStyle(color: _text(dark)),
                 ),
               ),
               SizedBox(width: horizontalGap),
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  initialValue: _aspect,
+                  value: _aspect,
                   items: const [
                     DropdownMenuItem(value: '1:1', child: Text('1:1')),
                     DropdownMenuItem(value: '4:3', child: Text('4:3')),
                     DropdownMenuItem(value: '16:9', child: Text('16:9')),
                   ],
                   onChanged: (v) => setState(() => _aspect = v!),
-                  decoration: _decSelect('Proporção'),
-                  dropdownColor: _fieldBg,
-                  style: TextStyle(color: _textMain),
+                  decoration: _decSelect('Proporção', dark),
+                  dropdownColor: _fieldBg(dark),
+                  style: TextStyle(color: _text(dark)),
                 ),
               ),
             ],
@@ -427,7 +386,10 @@ class _HomeState extends State<HomePage> {
               const SizedBox(width: 8),
               Text(
                 'Modo Didático',
-                style: TextStyle(color: _textMain, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: _text(dark),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -437,13 +399,11 @@ class _HomeState extends State<HomePage> {
             maxLines: 4,
             textInputAction: TextInputAction.done,
             cursorColor: _cta,
-            style: TextStyle(
-              color: _dark ? Colors.white : const Color(0xff0B1220),
-            ),
+            style: TextStyle(color: _text(dark)),
             decoration: _decInput(
               label: 'Descreva sua imagem',
-              hint:
-                  'Ex: Diagrama de ligação covalente H–H com elétrons e rótulos claros',
+              hint: 'Ex: Diagrama de ligação covalente H–H com rótulos claros',
+              dark: dark,
             ),
             enableSuggestions: true,
             autocorrect: true,
@@ -454,6 +414,9 @@ class _HomeState extends State<HomePage> {
             valueListenable: _prompt,
             builder: (_, v, __) {
               final can = v.text.trim().isNotEmpty && !_loading;
+              final fg = dark
+                  ? (can ? Colors.white : const Color(0xFF2B3347))
+                  : null;
               return SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -470,8 +433,9 @@ class _HomeState extends State<HomePage> {
                       : const Icon(Icons.auto_fix_high),
                   label: Text(_loading ? 'Gerando...' : 'Gerar Imagem'),
                   style: FilledButton.styleFrom(
+                    foregroundColor: fg,
                     backgroundColor: _cta,
-                    disabledBackgroundColor: _dark
+                    disabledBackgroundColor: dark
                         ? const Color(0xff1B2A52)
                         : const Color(0xffC8D7FE),
                     shape: RoundedRectangleBorder(
@@ -489,9 +453,9 @@ class _HomeState extends State<HomePage> {
 
     final rightPanel = Container(
       decoration: BoxDecoration(
-        color: _layer,
+        color: _layer(dark),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
+        border: Border.all(color: _border(dark)),
       ),
       padding: EdgeInsets.all(blockPad),
       child: Column(
@@ -500,7 +464,7 @@ class _HomeState extends State<HomePage> {
           Text(
             'Resultado',
             style: TextStyle(
-              color: _textMain,
+              color: _text(dark),
               fontSize: 22,
               fontWeight: FontWeight.w800,
             ),
@@ -508,28 +472,30 @@ class _HomeState extends State<HomePage> {
           SizedBox(height: kIsWeb ? 12 : 8),
           Text(
             'Sua imagem gerada aparecerá aqui',
-            style: TextStyle(color: _textSub),
+            style: TextStyle(color: _subText(dark)),
           ),
           SizedBox(height: kIsWeb ? 16 : 12),
           _preview == null
               ? Container(
                   height: kIsWeb ? 320 : 260,
                   decoration: BoxDecoration(
-                    color: _fieldBg,
+                    color: _fieldBg(dark),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _fieldBorder),
+                    border: Border.all(color: _fieldBorder(dark)),
                   ),
                   child: Center(
                     child: Text(
                       'Sem imagem ainda',
-                      style: TextStyle(color: _textSub),
+                      style: TextStyle(color: _subText(dark)),
                     ),
                   ),
                 )
               : ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: AspectRatio(
-                    aspectRatio: 16 / 9,
+                    aspectRatio: _aspect == '1:1'
+                        ? 1
+                        : (_aspect == '4:3' ? 4 / 3 : 16 / 9),
                     child: Image.network(_preview!, fit: BoxFit.cover),
                   ),
                 ),
@@ -537,17 +503,56 @@ class _HomeState extends State<HomePage> {
           Row(
             children: [
               FilledButton.tonal(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => HistoryPage(darkInitial: _dark),
-                  ),
-                ),
+                onPressed: _preview == null
+                    ? null
+                    : () =>
+                          _zoom(context, ThemeController.instance.isDark.value),
                 style: FilledButton.styleFrom(
-                  backgroundColor: _dark
+                  backgroundColor: dark
                       ? const Color(0xff1F2937)
                       : const Color(0xffE9EEF9),
-                  foregroundColor: _textMain,
+                  foregroundColor: _text(dark),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: kIsWeb ? 18 : 16,
+                    vertical: kIsWeb ? 16 : 14,
+                  ),
+                ),
+                child: const Text('Ampliar'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.tonal(
+                onPressed: _preview == null
+                    ? null
+                    : () => downloadImage(_preview!, filename: 'eduimage.png'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: dark
+                      ? const Color(0xff1F2937)
+                      : const Color(0xffE9EEF9),
+                  foregroundColor: _text(dark),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: kIsWeb ? 18 : 16,
+                    vertical: kIsWeb ? 16 : 14,
+                  ),
+                ),
+                child: const Text('Baixar'),
+              ),
+              const Spacer(),
+              FilledButton.tonal(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HistoryPage()),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: dark
+                      ? const Color(0xff1F2937)
+                      : const Color(0xffE9EEF9),
+                  foregroundColor: _text(dark),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -581,7 +586,58 @@ class _HomeState extends State<HomePage> {
     }
   }
 
-  Widget _createBody() {
+  void _zoom(BuildContext context, bool dark) {
+    if (_preview == null) return;
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.75),
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _layer(dark),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _border(dark)),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4,
+                    child: Image.network(_preview!, fit: BoxFit.contain),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    FilledButton.tonal(
+                      onPressed: () =>
+                          downloadImage(_preview!, filename: 'eduimage.png'),
+                      child: const Text('Baixar'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Fechar'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _createBody(bool dark) {
     final w = MediaQuery.of(context).size.width;
     final isWide = w >= 960;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
@@ -613,7 +669,7 @@ class _HomeState extends State<HomePage> {
                         'Onde Ideias Viram\nImagens Educacionais',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: _textMain,
+                          color: _text(dark),
                           fontSize: heroTitleSize,
                           fontWeight: FontWeight.w900,
                           height: 1.1,
@@ -625,7 +681,7 @@ class _HomeState extends State<HomePage> {
                         'Gere ilustrações educativas com aparência profissional para Física e Química. Simples, rápido e preciso.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: _textSub,
+                          color: _subText(dark),
                           fontSize: 16,
                           height: 1.5,
                         ),
@@ -646,7 +702,7 @@ class _HomeState extends State<HomePage> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1200),
-                  child: _panels(isWide),
+                  child: _panels(isWide, dark),
                 ),
               ),
             ),
@@ -664,13 +720,13 @@ class _HomeState extends State<HomePage> {
                     children: [
                       Text(
                         'EduImage • Ferramenta para criação de imagens educacionais',
-                        style: TextStyle(color: _textSub),
+                        style: TextStyle(color: _subText(dark)),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'Física • Química',
                         style: TextStyle(
-                          color: _dark
+                          color: dark
                               ? const Color(0xff6F7891)
                               : const Color(0xff6A768F),
                         ),
@@ -683,6 +739,103 @@ class _HomeState extends State<HomePage> {
           ],
         ),
       ),
+    );
+  }
+
+  InputDecoration _decSelect(String label, bool dark) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: _subText(dark)),
+      filled: true,
+      fillColor: _fieldBg(dark),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _fieldBorder(dark)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _fieldBorder(dark)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _cta, width: 1.4),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+  }
+
+  InputDecoration _decInput({
+    required String label,
+    required String hint,
+    required bool dark,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      labelStyle: TextStyle(color: _subText(dark)),
+      hintStyle: TextStyle(
+        color: dark ? const Color(0xff9AA3B6) : const Color(0xff8A93A6),
+      ),
+      filled: true,
+      fillColor: _fieldBg(dark),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _fieldBorder(dark)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _fieldBorder(dark)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _cta, width: 1.4),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: ThemeController.instance.isDark,
+      builder: (_, dark, __) {
+        final showBottomNav = !kIsWeb;
+        final items = <BottomNavigationBarItem>[
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: 'Criar',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: 'Minha Conta',
+          ),
+          if (_isAdmin)
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.admin_panel_settings),
+              label: 'Admin',
+            ),
+        ];
+        return Scaffold(
+          backgroundColor: _bg(dark),
+          resizeToAvoidBottomInset: true,
+          appBar: _appBar(dark),
+          body: _currentIndex == 0
+              ? _createBody(dark)
+              : _currentIndex == 1
+              ? _accountBody(dark)
+              : AdminPage(darkInitial: dark),
+          bottomNavigationBar: showBottomNav
+              ? BottomNavigationBar(
+                  currentIndex: _currentIndex.clamp(0, items.length - 1),
+                  onTap: (i) => setState(() => _currentIndex = i),
+                  backgroundColor: _layer(dark),
+                  selectedItemColor: _cta,
+                  unselectedItemColor: _subText(dark),
+                  items: items,
+                )
+              : null,
+        );
+      },
     );
   }
 
@@ -707,7 +860,7 @@ class _HomeState extends State<HomePage> {
     );
   }
 
-  Widget _accountBody() {
+  Widget _accountBody(bool dark) {
     final isWeb = kIsWeb;
     final side = isWeb ? 32.0 : 20.0;
     final maxW = isWeb ? 900.0 : double.infinity;
@@ -738,7 +891,7 @@ class _HomeState extends State<HomePage> {
                   Text(
                     FirebaseAuth.instance.currentUser?.displayName ?? 'Usuário',
                     style: TextStyle(
-                      color: _textMain,
+                      color: _text(dark),
                       fontSize: 22,
                       fontWeight: FontWeight.w600,
                     ),
@@ -746,7 +899,7 @@ class _HomeState extends State<HomePage> {
                   const SizedBox(height: 6),
                   Text(
                     FirebaseAuth.instance.currentUser?.email ?? '',
-                    style: TextStyle(color: _textSub, fontSize: 16),
+                    style: TextStyle(color: _subText(dark), fontSize: 16),
                   ),
                   const SizedBox(height: 28),
                   LayoutBuilder(
@@ -765,25 +918,24 @@ class _HomeState extends State<HomePage> {
                         children: [
                           Container(
                             decoration: BoxDecoration(
-                              color: _layer,
-                              border: Border.all(color: _border),
+                              color: _layer(dark),
+                              border: Border.all(color: _border(dark)),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             padding: const EdgeInsets.all(16),
                             child: ListTile(
-                              leading: Icon(Icons.image, color: _textMain),
+                              leading: Icon(Icons.image, color: _text(dark)),
                               title: Text(
                                 'Ver histórico salvo',
                                 style: TextStyle(
-                                  color: _textMain,
+                                  color: _text(dark),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      HistoryPage(darkInitial: _dark),
+                                  builder: (_) => const HistoryPage(),
                                 ),
                               ),
                               trailing: const Icon(Icons.chevron_right),
@@ -791,20 +943,20 @@ class _HomeState extends State<HomePage> {
                           ),
                           Container(
                             decoration: BoxDecoration(
-                              color: _layer,
-                              border: Border.all(color: _border),
+                              color: _layer(dark),
+                              border: Border.all(color: _border(dark)),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             padding: const EdgeInsets.all(16),
                             child: ListTile(
                               leading: Icon(
                                 Icons.mark_email_unread_outlined,
-                                color: _textMain,
+                                color: _text(dark),
                               ),
                               title: Text(
                                 'Enviar e-mail de verificação',
                                 style: TextStyle(
-                                  color: _textMain,
+                                  color: _text(dark),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -814,17 +966,20 @@ class _HomeState extends State<HomePage> {
                           ),
                           Container(
                             decoration: BoxDecoration(
-                              color: _layer,
-                              border: Border.all(color: _border),
+                              color: _layer(dark),
+                              border: Border.all(color: _border(dark)),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             padding: const EdgeInsets.all(16),
                             child: ListTile(
-                              leading: Icon(Icons.lock_reset, color: _textMain),
+                              leading: Icon(
+                                Icons.lock_reset,
+                                color: _text(dark),
+                              ),
                               title: Text(
                                 'Redefinir senha',
                                 style: TextStyle(
-                                  color: _textMain,
+                                  color: _text(dark),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -835,20 +990,20 @@ class _HomeState extends State<HomePage> {
                           if (_isAdmin)
                             Container(
                               decoration: BoxDecoration(
-                                color: _layer,
-                                border: Border.all(color: _border),
+                                color: _layer(dark),
+                                border: Border.all(color: _border(dark)),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               padding: const EdgeInsets.all(16),
                               child: ListTile(
                                 leading: Icon(
                                   Icons.admin_panel_settings,
-                                  color: _textMain,
+                                  color: _text(dark),
                                 ),
                                 title: Text(
                                   'Área do Administrador',
                                   style: TextStyle(
-                                    color: _textMain,
+                                    color: _text(dark),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -856,7 +1011,7 @@ class _HomeState extends State<HomePage> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) =>
-                                        AdminPage(darkInitial: _dark),
+                                        AdminPage(darkInitial: dark),
                                   ),
                                 ),
                                 trailing: const Icon(Icons.chevron_right),
@@ -864,8 +1019,8 @@ class _HomeState extends State<HomePage> {
                             ),
                           Container(
                             decoration: BoxDecoration(
-                              color: _layer,
-                              border: Border.all(color: _border),
+                              color: _layer(dark),
+                              border: Border.all(color: _border(dark)),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             padding: const EdgeInsets.all(16),
@@ -877,19 +1032,14 @@ class _HomeState extends State<HomePage> {
                               title: Text(
                                 'Sair',
                                 style: TextStyle(
-                                  color: _textMain,
+                                  color: _text(dark),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                               onTap: () async {
                                 await FirebaseAuth.instance.signOut();
                                 if (!mounted) return;
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(
-                                    builder: (_) => const HomePage(),
-                                  ),
-                                  (route) => false,
-                                );
+                                Navigator.of(context).pop();
                               },
                               trailing: const Icon(Icons.chevron_right),
                             ),
@@ -905,94 +1055,6 @@ class _HomeState extends State<HomePage> {
           ),
         ),
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final showBottomNav = !kIsWeb;
-    final items = <BottomNavigationBarItem>[
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.home_rounded),
-        label: 'Criar',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.person_rounded),
-        label: 'Minha Conta',
-      ),
-      if (_isAdmin)
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.admin_panel_settings),
-          label: 'Admin',
-        ),
-    ];
-    return Scaffold(
-      backgroundColor: _bg,
-      resizeToAvoidBottomInset: true,
-      appBar: _appBar(),
-      body: _currentIndex == 0
-          ? _createBody()
-          : _currentIndex == 1
-          ? _accountBody()
-          : AdminPage(darkInitial: _dark),
-      bottomNavigationBar: showBottomNav
-          ? BottomNavigationBar(
-              currentIndex: _currentIndex.clamp(0, items.length - 1),
-              onTap: (i) => setState(() => _currentIndex = i),
-              backgroundColor: _layer,
-              selectedItemColor: _cta,
-              unselectedItemColor: _textSub,
-              items: items,
-            )
-          : null,
-    );
-  }
-
-  InputDecoration _decSelect(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(color: _textSub),
-      filled: true,
-      fillColor: _fieldBg,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _fieldBorder),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _fieldBorder),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _cta, width: 1.4),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    );
-  }
-
-  InputDecoration _decInput({required String label, required String hint}) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      labelStyle: TextStyle(color: _textSub),
-      hintStyle: TextStyle(
-        color: _dark ? const Color(0xff9AA3B6) : const Color(0xff8A93A6),
-      ),
-      filled: true,
-      fillColor: _fieldBg,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _fieldBorder),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _fieldBorder),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _cta, width: 1.4),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     );
   }
 }

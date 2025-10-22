@@ -6,6 +6,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 
+export 'media_utils_stub.dart'
+  if (dart.library.html) 'media_utils_web.dart'
+  if (dart.library.io) 'media_utils_io.dart';
+
+
 Future<Uint8List> _bytesFromSrc(String src) async {
   if (src.startsWith('data:image/')) {
     final base64Part = src.split(',').last;
