@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:app/common/utils/storage_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -150,14 +150,13 @@ class _HomeState extends State<HomePage> {
         return;
       }
 
-      // exibe preview local (dataUrl)
       setState(() => _preview = dataUrl);
 
-      // upload para Storage + registro no Firestore
       final b64 = dataUrl.split(',').last;
-      final bytes = base64Decode(b64);
+      final bytes = Uint8List.fromList(base64Decode(b64));
       final now = DateTime.now();
       final ts = now.millisecondsSinceEpoch.toString();
+
       final path =
           'users/${user.uid}/images/${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}/$ts.png';
 
@@ -171,8 +170,8 @@ class _HomeState extends State<HomePage> {
           .doc(user.uid)
           .collection('images')
           .add({
-            'src': downloadUrl,
-            'path': path,
+            'storagePath': path,
+            'downloadUrl': downloadUrl,
             'model': data['model'] as String? ?? '',
             'prompt': data['promptUsado'] as String? ?? texto,
             'aspectRatio': _aspect,

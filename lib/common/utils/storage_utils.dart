@@ -44,6 +44,8 @@ class StorageUtils {
   }) async {
     final ref = FirebaseStorage.instance.ref(storagePath);
     await ref.putData(bytes, SettableMetadata(contentType: 'image/png'));
-    return await ref.getDownloadURL();
+    return ref.getDownloadURL();
   }
+
+  static Future<void> downloadByUrl(String finalUrl, {required String filename}) async {}
 }

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/common/widgets/smart_image.dart';
+import 'package:app/common/utils/storage_utils.dart';
 import 'package:app/features/home/home_page.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -30,7 +32,6 @@ class _HistoryPageState extends State<HistoryPage> {
   Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
   Color get _textSub =>
       _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
-  Color get _cta => const Color(0xff2563EB);
   Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
 
   PreferredSizeWidget _appBar() {
@@ -182,15 +183,18 @@ class _HistoryPageState extends State<HistoryPage> {
               itemCount: docs.length,
               itemBuilder: (_, i) {
                 final d = docs[i].data();
-                final src =
-                    (d['downloadUrl'] as String?) ??
+                final storagePath =
                     (d['storagePath'] as String?) ??
+                    (d['path'] as String?) ??
+                    '';
+                final url =
+                    (d['downloadUrl'] as String?) ??
                     (d['src'] as String? ?? '');
                 final prompt =
                     (d['prompt'] as String?) ??
                     (d['promptUsado'] as String? ?? '');
                 final model = (d['model'] as String?) ?? '';
-                return _imageCard(src, prompt, model, i);
+                return _imageCard(url, storagePath, prompt, model, i);
               },
             );
           },
@@ -199,9 +203,15 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _imageCard(String src, String prompt, String model, int index) {
+  Widget _imageCard(
+    String url,
+    String storagePath,
+    String prompt,
+    String model,
+    int index,
+  ) {
     return InkWell(
-      onTap: () => _openViewer(src, prompt, model),
+      onTap: () => _openViewer(url, storagePath, prompt, model),
       borderRadius: BorderRadius.circular(14),
       child: Ink(
         decoration: BoxDecoration(
@@ -214,7 +224,11 @@ class _HistoryPageState extends State<HistoryPage> {
           child: Stack(
             children: [
               Positioned.fill(
-                child: SmartImage(src: src, fit: BoxFit.cover),
+                child: SmartImage(
+                  src: url,
+                  storagePath: storagePath,
+                  fit: BoxFit.cover,
+                ),
               ),
               Positioned(
                 right: 8,
@@ -227,18 +241,31 @@ class _HistoryPageState extends State<HistoryPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () => _openViewer(src, prompt, model),
+                        onPressed: () =>
+                            _openViewer(url, storagePath, prompt, model),
                         icon: const Icon(Icons.fullscreen, color: Colors.white),
                       ),
                       IconButton(
                         onPressed: () async {
-                          await SmartImage.download(
-                            src,
-                            filename: 'eduimage_$index.png',
-                          );
-                          if (mounted) {
+                          try {
+                            final String finalUrl = storagePath.isNotEmpty
+                                ? await FirebaseStorage.instance
+                                      .ref(storagePath)
+                                      .getDownloadURL()
+                                : url;
+                            await StorageUtils.downloadByUrl(
+                              finalUrl,
+                              filename: 'eduimage_$index.png',
+                            );
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Imagem salva.')),
+                              );
+                            }
+                          } catch (e) {
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Imagem salva.')),
+                              SnackBar(content: Text('Falha no download: $e')),
                             );
                           }
                         },
@@ -258,7 +285,12 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  void _openViewer(String src, String prompt, String model) {
+  void _openViewer(
+    String url,
+    String storagePath,
+    String prompt,
+    String model,
+  ) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.75),
@@ -287,7 +319,8 @@ class _HistoryPageState extends State<HistoryPage> {
                                 minScale: 0.5,
                                 maxScale: 4,
                                 child: SmartImage(
-                                  src: src,
+                                  src: url,
+                                  storagePath: storagePath,
                                   fit: BoxFit.contain,
                                 ),
                               ),
@@ -304,7 +337,11 @@ class _HistoryPageState extends State<HistoryPage> {
                             borderRadius: BorderRadius.circular(12),
                             child: AspectRatio(
                               aspectRatio: 16 / 9,
-                              child: SmartImage(src: src, fit: BoxFit.cover),
+                              child: SmartImage(
+                                src: url,
+                                storagePath: storagePath,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 12),
