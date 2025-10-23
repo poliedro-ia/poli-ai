@@ -122,7 +122,10 @@ class _HomeState extends State<HomePage> {
         );
         return;
       }
-      setState(() => _preview = dataUrl);
+      setState(() {
+        _preview = dataUrl;
+        _prompt.clear();
+      });
 
       final b64 = dataUrl.split(',').last;
       base64Decode(b64);
@@ -1046,7 +1049,7 @@ class _HomeState extends State<HomePage> {
                               onTap: () async {
                                 await FirebaseAuth.instance.signOut();
                                 if (!mounted) return;
-                                Navigator.of(context).pop();
+                                setState(() => _currentIndex = 0);
                               },
                               trailing: const Icon(Icons.chevron_right),
                             ),
