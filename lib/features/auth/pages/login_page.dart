@@ -1,4 +1,3 @@
-// lib/features/auth/pages/login_page.dart
 import 'package:flutter/material.dart';
 import 'package:app/features/auth/auth_service.dart';
 import 'package:app/features/auth/firebase_error_mapper.dart';
@@ -123,9 +122,10 @@ class _LoginState extends State<Login> {
         Padding(
           padding: const EdgeInsets.only(right: 16),
           child: FilledButton(
-            onPressed: () {}, // já estamos no login
+            onPressed: () {},
             style: FilledButton.styleFrom(
               backgroundColor: _cta,
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -249,6 +249,7 @@ class _LoginState extends State<Login> {
                         disabledBackgroundColor: _dark
                             ? const Color(0xFF1B2A52)
                             : const Color(0xFFCBD8FF),
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),

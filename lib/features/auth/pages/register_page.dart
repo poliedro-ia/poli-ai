@@ -165,6 +165,7 @@ class _RegisterState extends State<Register> {
             },
             style: FilledButton.styleFrom(
               backgroundColor: _cta,
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -276,6 +277,7 @@ class _RegisterState extends State<Register> {
                         disabledBackgroundColor: _dark
                             ? const Color(0xFF1B2A52)
                             : const Color(0xFFCBD8FF),
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),

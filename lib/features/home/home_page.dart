@@ -8,7 +8,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/utils/media_utils.dart';
-import 'package:app/features/auth/pages/signup_or_signin_page.dart';
 import 'package:app/features/history/history_page.dart';
 import 'package:app/features/admin/admin_page.dart';
 
@@ -89,8 +88,12 @@ class _HomeState extends State<HomePage> {
     if (user == null) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const SignupOrSignin()),
+        MaterialPageRoute(
+          builder: (_) =>
+              Login(darkInitial: ThemeController.instance.isDark.value),
+        ),
       );
+
       return;
     }
     setState(() => _loading = true);
@@ -122,7 +125,7 @@ class _HomeState extends State<HomePage> {
       setState(() => _preview = dataUrl);
 
       final b64 = dataUrl.split(',').last;
-      final bytes = base64Decode(b64);
+      base64Decode(b64);
       final now = DateTime.now();
       final ts = now.millisecondsSinceEpoch.toString();
       final path =
@@ -239,7 +242,11 @@ class _HomeState extends State<HomePage> {
                     } else {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const Login()),
+                        MaterialPageRoute(
+                          builder: (_) => Login(
+                            darkInitial: ThemeController.instance.isDark.value,
+                          ),
+                        ),
                       );
                     }
                   },
