@@ -1,24 +1,25 @@
-import 'dart:async';
-import 'package:app/core/configs/theme/theme_controller.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:app/firebase_options.dart';
+import 'firebase_options.dart';
 import 'package:app/features/home/home_page.dart';
 
 Future<void> _init() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   if (kIsWeb) {
     await FirebaseAppCheck.instance.activate(
-      webProvider: ReCaptchaV3Provider('SEU_RECAPTCHA_V3_SITE_KEY'),
+      webProvider: ReCaptchaV3Provider('6Lf6se0rAAAAAOSe2SBEeO0qL7Rb_3BrHiO4SKgH'),
     );
+    await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
   } else {
-    await FirebaseAppCheck.instance.activate();
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.playIntegrity,
+      appleProvider: AppleProvider.deviceCheck,
+    );
   }
-  await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-  await ThemeController.instance.load();
 }
 
 void main() async {
@@ -31,19 +32,9 @@ class App extends StatelessWidget {
   const App({super.key});
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: ThemeController.instance.isDark,
-      builder: (_, dark, __) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            brightness: dark ? Brightness.dark : Brightness.light,
-            colorSchemeSeed: const Color(0xff2563EB),
-            useMaterial3: true,
-          ),
-          home: const HomePage(),
-        );
-      },
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: HomePage(),
     );
   }
 }
