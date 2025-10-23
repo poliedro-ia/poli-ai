@@ -121,6 +121,8 @@ class SmartImage extends StatelessWidget {
   Widget _errBuilder(BuildContext context, Object error, StackTrace? st) {
     return _error();
   }
+
+  static Future<void> download(String src, {required String filename}) async {}
 }
 
 class _Resolved {

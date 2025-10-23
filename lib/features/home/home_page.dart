@@ -10,6 +10,7 @@ import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/utils/media_utils.dart';
 import 'package:app/features/history/history_page.dart';
 import 'package:app/features/admin/admin_page.dart';
+import 'package:app/features/account/edit_name_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -310,7 +311,7 @@ class _HomeState extends State<HomePage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _tema,
+                  initialValue: _tema,
                   items: const [
                     DropdownMenuItem(value: 'Física', child: Text('Física')),
                     DropdownMenuItem(value: 'Química', child: Text('Química')),
@@ -332,7 +333,7 @@ class _HomeState extends State<HomePage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _sub,
+                  initialValue: _sub,
                   items: _subareasFor(_tema)
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
@@ -350,7 +351,7 @@ class _HomeState extends State<HomePage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _estilo,
+                  initialValue: _estilo,
                   items: const [
                     DropdownMenuItem(
                       value: 'Vetorial',
@@ -372,7 +373,7 @@ class _HomeState extends State<HomePage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _aspect,
+                  initialValue: _aspect,
                   items: const [
                     DropdownMenuItem(value: '1:1', child: Text('1:1')),
                     DropdownMenuItem(value: '4:3', child: Text('4:3')),
@@ -945,9 +946,59 @@ class _HomeState extends State<HomePage> {
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const HistoryPage(),
+                                  builder: (_) =>
+                                      HistoryPage(darkInitial: dark),
                                 ),
                               ),
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _layer(dark),
+                              border: Border.all(color: _border(dark)),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.badge_outlined,
+                                color: _text(dark),
+                              ),
+                              title: Text(
+                                'Editar nome',
+                                style: TextStyle(
+                                  color: _text(dark),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              onTap: () async {
+                                final u = FirebaseAuth.instance.currentUser;
+                                if (u == null) return;
+                                final current = u.displayName ?? '';
+                                final name = await showDialog<String>(
+                                  context: context,
+                                  builder: (_) =>
+                                      EditNameDialog(initialName: current),
+                                );
+                                if (name == null || name.isEmpty) return;
+                                try {
+                                  await u.updateDisplayName(name);
+                                  await u.reload();
+                                  setState(() {});
+                                  if (mounted)
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Nome atualizado.'),
+                                      ),
+                                    );
+                                } catch (e) {
+                                  if (mounted)
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Erro: $e')),
+                                    );
+                                }
+                              },
                               trailing: const Icon(Icons.chevron_right),
                             ),
                           ),
@@ -1049,7 +1100,12 @@ class _HomeState extends State<HomePage> {
                               onTap: () async {
                                 await FirebaseAuth.instance.signOut();
                                 if (!mounted) return;
-                                setState(() => _currentIndex = 0);
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (_) => const HomePage(),
+                                  ),
+                                  (_) => false,
+                                );
                               },
                               trailing: const Icon(Icons.chevron_right),
                             ),

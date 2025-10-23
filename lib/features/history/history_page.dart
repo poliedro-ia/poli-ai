@@ -1,27 +1,41 @@
-import 'package:app/core/configs/theme/theme_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/common/widgets/smart_image.dart';
-import 'package:app/core/utils/media_utils.dart';
 import 'package:app/features/home/home_page.dart';
 
-class HistoryPage extends StatelessWidget {
-  const HistoryPage({super.key});
+class HistoryPage extends StatefulWidget {
+  final bool? darkInitial;
+  const HistoryPage({super.key, this.darkInitial});
+  @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
 
-  Color _bg(bool d) => d ? const Color(0xff0B0E19) : const Color(0xffF7F8FA);
-  Color _layer(bool d) => d ? const Color(0xff121528) : Colors.white;
-  Color _border(bool d) =>
-      d ? const Color(0xff1E2233) : const Color(0xffE7EAF0);
-  Color _text(bool d) => d ? Colors.white : const Color(0xff0B1220);
-  Color _sub(bool d) => d ? const Color(0xff97A0B5) : const Color(0xff5A6477);
-  Color _bar(bool d) => d ? const Color(0xff101425) : Colors.white;
+class _HistoryPageState extends State<HistoryPage> {
+  bool _dark = true;
 
-  PreferredSizeWidget _appBar(BuildContext context, bool dark) {
+  @override
+  void initState() {
+    super.initState();
+    _dark = widget.darkInitial ?? true;
+  }
+
+  Color get _bg => _dark ? const Color(0xff0B0E19) : const Color(0xffF7F8FA);
+  Color get _layer => _dark ? const Color(0xff121528) : Colors.white;
+  Color get _border =>
+      _dark ? const Color(0xff1E2233) : const Color(0xffE7EAF0);
+  Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
+  Color get _textSub =>
+      _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
+  Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
+
+  PreferredSizeWidget _appBar() {
     return AppBar(
-      backgroundColor: _bar(dark),
+      backgroundColor: _barBg,
       elevation: 0,
       automaticallyImplyLeading: false,
       toolbarHeight: kIsWeb ? 76 : kToolbarHeight,
@@ -29,12 +43,14 @@ class HistoryPage extends StatelessWidget {
       title: Padding(
         padding: EdgeInsets.only(left: kIsWeb ? 20 : 14),
         child: GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const HomePage()),
-          ),
+          onTap: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePage()),
+              (route) => false,
+            );
+          },
           child: Image.asset(
-            dark ? Images.whiteLogo : Images.logo,
+            _dark ? Images.whiteLogo : Images.logo,
             height: kIsWeb ? 100 : 82,
             width: kIsWeb ? 100 : 82,
           ),
@@ -44,15 +60,16 @@ class HistoryPage extends StatelessWidget {
         Padding(
           padding: EdgeInsets.only(right: kIsWeb ? 14 : 10),
           child: IconButton(
-            onPressed: () => ThemeController.instance.toggle(),
+            tooltip: _dark ? 'Tema claro' : 'Tema escuro',
+            onPressed: () => setState(() => _dark = !_dark),
             icon: Icon(
-              dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
-              color: _text(dark),
+              _dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
+              color: _textMain,
               size: kIsWeb ? 24 : 22,
             ),
             style: IconButton.styleFrom(
               padding: const EdgeInsets.all(10),
-              backgroundColor: dark
+              backgroundColor: _dark
                   ? const Color(0x221E2A4A)
                   : const Color(0x22E9EEF9),
               shape: RoundedRectangleBorder(
@@ -64,7 +81,7 @@ class HistoryPage extends StatelessWidget {
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: _border(dark).withOpacity(0.7)),
+        child: Container(height: 1, color: _border.withOpacity(0.7)),
       ),
     );
   }
@@ -72,31 +89,26 @@ class HistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final u = FirebaseAuth.instance.currentUser;
-    return ValueListenableBuilder<bool>(
-      valueListenable: ThemeController.instance.isDark,
-      builder: (_, dark, __) {
-        return Scaffold(
-          backgroundColor: _bg(dark),
-          appBar: _appBar(context, dark),
-          body: u == null ? _needLogin(dark) : _gridFor(context, u.uid, dark),
-        );
-      },
+    return Scaffold(
+      backgroundColor: _bg,
+      appBar: _appBar(),
+      body: u == null ? _requireLogin() : _gridFor(u.uid),
     );
   }
 
-  Widget _needLogin(bool dark) {
+  Widget _requireLogin() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.lock_outline, color: _sub(dark), size: 48),
+            Icon(Icons.lock_outline, color: _textSub, size: 48),
             const SizedBox(height: 12),
             Text(
               'Entre para visualizar seu histórico',
               style: TextStyle(
-                color: _text(dark),
+                color: _textMain,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -104,7 +116,7 @@ class HistoryPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Suas imagens geradas aparecerão aqui.',
-              style: TextStyle(color: _sub(dark)),
+              style: TextStyle(color: _textSub),
             ),
           ],
         ),
@@ -112,20 +124,21 @@ class HistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _gridFor(BuildContext context, String uid, bool dark) {
+  Widget _gridFor(String uid) {
+    final query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('images')
+        .orderBy('createdAt', descending: true);
+
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('images')
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
+      stream: query.snapshots(),
       builder: (context, snap) {
         if (snap.hasError) {
           return Center(
             child: Text(
               'Erro: ${snap.error}',
-              style: TextStyle(color: _text(dark)),
+              style: TextStyle(color: _textMain),
             ),
           );
         }
@@ -143,12 +156,12 @@ class HistoryPage extends StatelessWidget {
           return Center(
             child: Text(
               'Nenhuma imagem ainda',
-              style: TextStyle(color: _sub(dark)),
+              style: TextStyle(color: _textSub),
             ),
           );
         }
         return LayoutBuilder(
-          builder: (_, c) {
+          builder: (context, c) {
             final w = c.maxWidth;
             int cross = 2;
             if (w >= 1400)
@@ -169,12 +182,26 @@ class HistoryPage extends StatelessWidget {
               ),
               itemCount: docs.length,
               itemBuilder: (_, i) {
-                final d = docs[i].data();
-                final src = (d['downloadUrl'] ?? d['src'] ?? '') as String;
+                final doc = docs[i];
+                final d = doc.data();
+                final src =
+                    (d['downloadUrl'] as String?) ??
+                    (d['src'] as String? ?? '');
+                final storagePath =
+                    (d['storagePath'] as String?) ??
+                    (d['path'] as String? ?? '');
                 final prompt =
-                    (d['prompt'] ?? d['promptUsado'] ?? '') as String;
-                final model = (d['model'] ?? '') as String;
-                return _card(context, dark, src, prompt, model, i);
+                    (d['prompt'] as String?) ??
+                    (d['promptUsado'] as String? ?? '');
+                final model = (d['model'] as String?) ?? '';
+                return _imageCard(
+                  src,
+                  prompt,
+                  model,
+                  i,
+                  doc.reference,
+                  storagePath,
+                );
               },
             );
           },
@@ -183,23 +210,21 @@ class HistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _card(
-    BuildContext context,
-    bool dark,
+  Widget _imageCard(
     String src,
     String prompt,
     String model,
     int index,
+    DocumentReference ref,
+    String storagePath,
   ) {
-    final layer = _layer(dark);
-    final border = _border(dark);
     return InkWell(
-      onTap: () => _viewer(context, dark, src, prompt, model),
+      onTap: () => _openViewer(src, prompt, model),
       borderRadius: BorderRadius.circular(14),
       child: Ink(
         decoration: BoxDecoration(
-          color: layer,
-          border: Border.all(color: border),
+          color: _layer,
+          border: Border.all(color: _border),
           borderRadius: BorderRadius.circular(14),
         ),
         child: ClipRRect(
@@ -220,26 +245,37 @@ class HistoryPage extends StatelessWidget {
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () =>
-                            _viewer(context, dark, src, prompt, model),
+                        onPressed: () => _openViewer(src, prompt, model),
                         icon: const Icon(Icons.fullscreen, color: Colors.white),
                       ),
                       IconButton(
                         onPressed: () async {
-                          await downloadImage(
+                          await SmartImage.download(
                             src,
                             filename: 'eduimage_$index.png',
                           );
-                          if (context.mounted) {
+                          if (mounted)
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Imagem salva.')),
                             );
-                          }
                         },
                         icon: const Icon(
                           Icons.download_rounded,
                           color: Colors.white,
                         ),
+                      ),
+                      PopupMenuButton<String>(
+                        onSelected: (v) async {
+                          if (v == 'delete')
+                            await _confirmDelete(ref, storagePath, src);
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Apagar'),
+                          ),
+                        ],
+                        icon: const Icon(Icons.more_vert, color: Colors.white),
                       ),
                     ],
                   ),
@@ -252,28 +288,70 @@ class HistoryPage extends StatelessWidget {
     );
   }
 
-  void _viewer(
-    BuildContext context,
-    bool dark,
+  Future<void> _confirmDelete(
+    DocumentReference ref,
+    String storagePath,
     String src,
-    String prompt,
-    String model,
-  ) {
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Apagar imagem'),
+        content: const Text(
+          'Tem certeza que deseja apagar esta imagem do seu histórico?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Apagar'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      if (storagePath.isNotEmpty) {
+        await FirebaseStorage.instance.ref(storagePath).delete();
+      } else if (src.startsWith('gs://')) {
+        await FirebaseStorage.instance.refFromURL(src).delete();
+      } else if (src.startsWith('https://') && src.contains('/o/')) {
+        try {
+          await FirebaseStorage.instance.refFromURL(src).delete();
+        } catch (_) {}
+      }
+      await ref.delete();
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Imagem removida.')));
+    } catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao apagar: $e')));
+    }
+  }
+
+  void _openViewer(String src, String prompt, String model) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.75),
-      builder: (dialogCtx) {
+      builder: (_) {
         return Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.all(16),
           child: LayoutBuilder(
-            builder: (_, c) {
+            builder: (context, c) {
               final isWide = c.maxWidth >= 900;
               return Container(
                 decoration: BoxDecoration(
-                  color: _layer(dark),
+                  color: _layer,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _border(dark)),
+                  border: Border.all(color: _border),
                 ),
                 padding: const EdgeInsets.all(12),
                 child: isWide
@@ -294,16 +372,7 @@ class HistoryPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Expanded(
-                            flex: 4,
-                            child: _details(
-                              dark,
-                              prompt,
-                              model,
-                              src,
-                              dialogCtx,
-                            ),
-                          ),
+                          Expanded(flex: 4, child: _detailsPane(prompt, model)),
                         ],
                       )
                     : Column(
@@ -317,7 +386,7 @@ class HistoryPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          _details(dark, prompt, model, src, dialogCtx),
+                          _detailsPane(prompt, model),
                         ],
                       ),
               );
@@ -328,18 +397,12 @@ class HistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _details(
-    bool dark,
-    String prompt,
-    String model,
-    String src,
-    BuildContext dialogCtx,
-  ) {
+  Widget _detailsPane(String prompt, String model) {
     return Container(
       decoration: BoxDecoration(
-        color: dark ? const Color(0xff0F1220) : Colors.white,
+        color: _dark ? const Color(0xff0F1220) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _border(dark)),
+        border: Border.all(color: _border),
       ),
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -347,9 +410,9 @@ class HistoryPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Entradas',
+            'Detalhes',
             style: TextStyle(
-              color: _text(dark),
+              color: _textMain,
               fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
@@ -358,35 +421,28 @@ class HistoryPage extends StatelessWidget {
           if (model.isNotEmpty) ...[
             Text(
               'Modelo',
-              style: TextStyle(color: _sub(dark), fontWeight: FontWeight.w600),
+              style: TextStyle(color: _textSub, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
-            Text(model, style: TextStyle(color: _text(dark))),
+            Text(model, style: TextStyle(color: _textMain)),
             const SizedBox(height: 10),
           ],
           Text(
             'Prompt utilizado',
-            style: TextStyle(color: _sub(dark), fontWeight: FontWeight.w600),
+            style: TextStyle(color: _textSub, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
           Text(
             prompt.isEmpty ? 'Indisponível' : prompt,
-            style: TextStyle(color: _text(dark), height: 1.35),
+            style: TextStyle(color: _textMain, height: 1.35),
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              FilledButton.tonal(
-                onPressed: () => downloadImage(src, filename: 'eduimage.png'),
-                child: const Text('Baixar'),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogCtx).pop(),
-                child: const Text('Fechar'),
-              ),
-            ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonal(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fechar'),
+            ),
           ),
         ],
       ),
