@@ -214,7 +214,7 @@ class _HomeState extends State<HomePage> {
           child: FilledButton.tonal(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HistoryPage()),
+              MaterialPageRoute(builder: (_) => HistoryPage(darkInitial: dark)),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: dark
@@ -557,7 +557,9 @@ class _HomeState extends State<HomePage> {
               FilledButton.tonal(
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const HistoryPage()),
+                  MaterialPageRoute(
+                    builder: (_) => HistoryPage(darkInitial: dark),
+                  ),
                 ),
                 style: FilledButton.styleFrom(
                   backgroundColor: dark

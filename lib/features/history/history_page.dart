@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:app/core/configs/theme/theme_controller.dart';
 
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/common/widgets/smart_image.dart';
@@ -21,7 +22,7 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   void initState() {
     super.initState();
-    _dark = widget.darkInitial ?? true;
+    _dark = widget.darkInitial ?? ThemeController.instance.isDark.value;
   }
 
   Color get _bg => _dark ? const Color(0xff0B0E19) : const Color(0xffF7F8FA);
@@ -61,7 +62,10 @@ class _HistoryPageState extends State<HistoryPage> {
           padding: EdgeInsets.only(right: kIsWeb ? 14 : 10),
           child: IconButton(
             tooltip: _dark ? 'Tema claro' : 'Tema escuro',
-            onPressed: () => setState(() => _dark = !_dark),
+            onPressed: () {
+              ThemeController.instance.toggle();
+              setState(() => _dark = !_dark);
+            },
             icon: Icon(
               _dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
               color: _textMain,
