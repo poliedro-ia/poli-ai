@@ -1,13 +1,12 @@
-import 'package:app/core/utils/naming.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:app/core/configs/theme/theme_controller.dart';
-
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/common/widgets/smart_image.dart';
+import 'package:app/core/utils/media_utils.dart';
 import 'package:app/features/home/home_page.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -23,7 +22,7 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   void initState() {
     super.initState();
-    _dark = widget.darkInitial ?? ThemeController.instance.isDark.value;
+    _dark = widget.darkInitial ?? true;
   }
 
   Color get _bg => _dark ? const Color(0xff0B0E19) : const Color(0xffF7F8FA);
@@ -34,6 +33,9 @@ class _HistoryPageState extends State<HistoryPage> {
   Color get _textSub =>
       _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
   Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
+
+  String _fileName([int? i]) =>
+      'PoliAI_${DateTime.now().millisecondsSinceEpoch}${i != null ? '_$i' : ''}.png';
 
   PreferredSizeWidget _appBar() {
     return AppBar(
@@ -63,10 +65,7 @@ class _HistoryPageState extends State<HistoryPage> {
           padding: EdgeInsets.only(right: kIsWeb ? 14 : 10),
           child: IconButton(
             tooltip: _dark ? 'Tema claro' : 'Tema escuro',
-            onPressed: () {
-              ThemeController.instance.toggle();
-              setState(() => _dark = !_dark);
-            },
+            onPressed: () => setState(() => _dark = !_dark),
             icon: Icon(
               _dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
               color: _textMain,
@@ -130,15 +129,16 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _gridFor(String uid) {
-    final query = FirebaseFirestore.instance
+    final stream = FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('images')
-        .orderBy('createdAt', descending: true);
+        .orderBy('createdAt', descending: true)
+        .snapshots();
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: query.snapshots(),
-      builder: (context, snap) {
+      stream: stream,
+      builder: (_, snap) {
         if (snap.hasError) {
           return Center(
             child: Text(
@@ -165,18 +165,20 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
           );
         }
+
         return LayoutBuilder(
           builder: (context, c) {
             final w = c.maxWidth;
             int cross = 2;
-            if (w >= 1400) {
+            if (w >= 1400)
               cross = 6;
-            } else if (w >= 1200)
+            else if (w >= 1200)
               cross = 5;
             else if (w >= 900)
               cross = 4;
             else if (w >= 640)
               cross = 3;
+
             return GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -191,21 +193,21 @@ class _HistoryPageState extends State<HistoryPage> {
                 final d = doc.data();
                 final src =
                     (d['downloadUrl'] as String?) ??
+                    (d['url'] as String?) ??
                     (d['src'] as String? ?? '');
-                final storagePath =
-                    (d['storagePath'] as String?) ??
-                    (d['path'] as String? ?? '');
                 final prompt =
                     (d['prompt'] as String?) ??
                     (d['promptUsado'] as String? ?? '');
                 final model = (d['model'] as String?) ?? '';
-                return _imageCard(
-                  src,
-                  prompt,
-                  model,
-                  i,
-                  doc.reference,
-                  storagePath,
+                final storagePath = (d['storagePath'] as String?) ?? '';
+                return _card(
+                  id: doc.id,
+                  src: src,
+                  prompt: prompt,
+                  model: model,
+                  storagePath: storagePath,
+                  index: i,
+                  uid: uid,
                 );
               },
             );
@@ -215,16 +217,17 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _imageCard(
-    String src,
-    String prompt,
-    String model,
-    int index,
-    DocumentReference ref,
-    String storagePath,
-  ) {
+  Widget _card({
+    required String id,
+    required String uid,
+    required String src,
+    required String prompt,
+    required String model,
+    required String storagePath,
+    required int index,
+  }) {
     return InkWell(
-      onTap: () => _openViewer(src, prompt, model),
+      onTap: () => _openViewer(id, uid, src, prompt, model, storagePath),
       borderRadius: BorderRadius.circular(14),
       child: Ink(
         decoration: BoxDecoration(
@@ -245,23 +248,29 @@ class _HistoryPageState extends State<HistoryPage> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.45),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () => _openViewer(src, prompt, model),
+                        tooltip: 'Ampliar',
+                        onPressed: () => _openViewer(
+                          id,
+                          uid,
+                          src,
+                          prompt,
+                          model,
+                          storagePath,
+                        ),
                         icon: const Icon(Icons.fullscreen, color: Colors.white),
                       ),
                       IconButton(
+                        tooltip: 'Baixar',
                         onPressed: () async {
-                          await SmartImage.download(
-                            src,
-                            filename: buildDownloadName(),
-                          );
+                          await downloadImage(src, filename: _fileName(index));
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Imagem salva.')),
+                              const SnackBar(content: Text('Imagem salva')),
                             );
                           }
                         },
@@ -270,20 +279,13 @@ class _HistoryPageState extends State<HistoryPage> {
                           color: Colors.white,
                         ),
                       ),
-
-                      PopupMenuButton<String>(
-                        onSelected: (v) async {
-                          if (v == 'delete') {
-                            await _confirmDelete(ref, storagePath, src);
-                          }
-                        },
-                        itemBuilder: (_) => [
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Apagar'),
-                          ),
-                        ],
-                        icon: const Icon(Icons.more_vert, color: Colors.white),
+                      IconButton(
+                        tooltip: 'Excluir',
+                        onPressed: () => _confirmDelete(id, uid, storagePath),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.white,
+                        ),
                       ),
                     ],
                   ),
@@ -296,18 +298,13 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Future<void> _confirmDelete(
-    DocumentReference ref,
-    String storagePath,
-    String src,
-  ) async {
+  Future<void> _confirmDelete(String id, String uid, String storagePath) async {
     final ok = await showDialog<bool>(
       context: context,
+      barrierColor: Colors.black54,
       builder: (_) => AlertDialog(
-        title: const Text('Apagar imagem'),
-        content: const Text(
-          'Tem certeza que deseja apagar esta imagem do seu histórico?',
-        ),
+        title: const Text('Remover imagem'),
+        content: const Text('Deseja apagar a imagem do seu histórico?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -321,21 +318,30 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
     );
     if (ok != true) return;
+    await _deleteImage(id: id, uid: uid, storagePath: storagePath);
+  }
+
+  Future<void> _deleteImage({
+    required String id,
+    required String uid,
+    required String storagePath,
+  }) async {
     try {
       if (storagePath.isNotEmpty) {
-        await FirebaseStorage.instance.ref(storagePath).delete();
-      } else if (src.startsWith('gs://')) {
-        await FirebaseStorage.instance.refFromURL(src).delete();
-      } else if (src.startsWith('https://') && src.contains('/o/')) {
         try {
-          await FirebaseStorage.instance.refFromURL(src).delete();
+          await FirebaseStorage.instance.ref(storagePath).delete();
         } catch (_) {}
       }
-      await ref.delete();
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('images')
+          .doc(id)
+          .delete();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Imagem removida.')));
+        ).showSnackBar(const SnackBar(content: Text('Imagem removida')));
       }
     } catch (e) {
       if (mounted) {
@@ -346,7 +352,14 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
-  void _openViewer(String src, String prompt, String model) {
+  void _openViewer(
+    String id,
+    String uid,
+    String src,
+    String prompt,
+    String model,
+    String storagePath,
+  ) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.75),
@@ -382,7 +395,17 @@ class _HistoryPageState extends State<HistoryPage> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Expanded(flex: 4, child: _detailsPane(prompt, model)),
+                          Expanded(
+                            flex: 4,
+                            child: _detailsPane(
+                              id,
+                              uid,
+                              src,
+                              prompt,
+                              model,
+                              storagePath,
+                            ),
+                          ),
                         ],
                       )
                     : Column(
@@ -396,7 +419,14 @@ class _HistoryPageState extends State<HistoryPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          _detailsPane(prompt, model),
+                          _detailsPane(
+                            id,
+                            uid,
+                            src,
+                            prompt,
+                            model,
+                            storagePath,
+                          ),
                         ],
                       ),
               );
@@ -407,7 +437,14 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _detailsPane(String prompt, String model) {
+  Widget _detailsPane(
+    String id,
+    String uid,
+    String src,
+    String prompt,
+    String model,
+    String storagePath,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: _dark ? const Color(0xff0F1220) : Colors.white,
@@ -447,12 +484,49 @@ class _HistoryPageState extends State<HistoryPage> {
             style: TextStyle(color: _textMain, height: 1.35),
           ),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.tonal(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Fechar'),
-            ),
+          Row(
+            children: [
+              FilledButton.tonal(
+                onPressed: () async {
+                  await downloadImage(src, filename: _fileName());
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Imagem salva')),
+                    );
+                  }
+                },
+                child: const Text('Baixar'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.tonal(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: src));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Link copiado')));
+                },
+                child: const Text('Copiar link'),
+              ),
+              const Spacer(),
+              IconButton.filledTonal(
+                onPressed: () => _confirmDelete(id, uid, storagePath),
+                icon: const Icon(Icons.delete_outline),
+                style: ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll(
+                    _dark ? const Color(0xff2A1520) : const Color(0xffFFE8EC),
+                  ),
+                  foregroundColor: WidgetStatePropertyAll(
+                    _dark ? const Color(0xffFCA5B1) : const Color(0xffC81E3A),
+                  ),
+                ),
+                tooltip: 'Excluir',
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Fechar'),
+              ),
+            ],
           ),
         ],
       ),

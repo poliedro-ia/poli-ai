@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:app/core/configs/theme/theme_controller.dart';
-import 'package:app/core/utils/naming.dart';
 import 'package:app/features/auth/pages/login_page.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_functions/cloud_functions.dart';
@@ -31,6 +31,7 @@ class _HomeState extends State<HomePage> {
   bool _didatico = true;
   bool _loading = false;
   String? _preview;
+  String? _previewUrl;
   int _currentIndex = 0;
   bool _isAdmin = false;
 
@@ -86,18 +87,17 @@ class _HomeState extends State<HomePage> {
       );
       return;
     }
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
+      bool? _dark;
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) =>
-              Login(darkInitial: ThemeController.instance.isDark.value),
-        ),
+        MaterialPageRoute(builder: (_) => Login(darkInitial: _dark)),
       );
-
       return;
     }
+
     setState(() => _loading = true);
     try {
       final texto = _didatico
@@ -124,35 +124,44 @@ class _HomeState extends State<HomePage> {
         );
         return;
       }
-      setState(() {
-        _preview = dataUrl;
-        _prompt.clear();
-      });
 
+      setState(() => _preview = dataUrl);
+
+      final mime = dataUrl.substring(5, dataUrl.indexOf(';')); // ex: image/png
+      final ext = mime.split('/').last; // ex: png
       final b64 = dataUrl.split(',').last;
-      base64Decode(b64);
+      final bytes = base64Decode(b64);
+
       final now = DateTime.now();
       final ts = now.millisecondsSinceEpoch.toString();
       final path =
-          'images/${user.uid}/${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}/$ts.png';
+          'images/${user.uid}/${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}/$ts.$ext';
 
-      final ref = FirebaseFirestore.instance
+      final ref = FirebaseStorage.instance.ref(path);
+      await ref.putData(bytes, SettableMetadata(contentType: mime));
+      final url = await ref.getDownloadURL();
+
+      setState(() => _previewUrl = url);
+
+      await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .collection('images');
-      await ref.add({
-        'downloadUrl': dataUrl,
-        'src': dataUrl,
-        'storagePath': path,
-        'model': data['model'] as String? ?? '',
-        'prompt': data['promptUsado'] as String? ?? texto,
-        'aspectRatio': _aspect,
-        'temaSelecionado': _tema,
-        'subareaSelecionada': _sub,
-        'temaResolvido': _tema.toLowerCase(),
-        'subareaResolvida': _sub.toLowerCase(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+          .collection('images')
+          .add({
+            'downloadUrl': url,
+            'src': url,
+            'storagePath': path,
+            'model': data['model'] as String? ?? '',
+            'prompt': data['promptUsado'] as String? ?? texto,
+            'aspectRatio': _aspect,
+            'temaSelecionado': _tema,
+            'subareaSelecionada': _sub,
+            'temaResolvido': _tema.toLowerCase(),
+            'subareaResolvida': _sub.toLowerCase(),
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+      _prompt.clear();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -502,20 +511,33 @@ class _HomeState extends State<HomePage> {
                     ),
                   ),
                 )
-              : ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: AspectRatio(
-                    aspectRatio: _aspect == '1:1'
-                        ? 1
-                        : (_aspect == '4:3' ? 4 / 3 : 16 / 9),
-                    child: Image.network(_preview!, fit: BoxFit.cover),
+              : Container(
+                  height: kIsWeb ? 320 : 260,
+                  decoration: BoxDecoration(
+                    color: _fieldBg(dark),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _fieldBorder(dark)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Image.network(
+                            _previewUrl ?? _preview!,
+                            fit: BoxFit.cover,
+                            gaplessPlayback: true,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
           SizedBox(height: kIsWeb ? 20 : 16),
           Row(
             children: [
               FilledButton.tonal(
-                onPressed: _preview == null
+                onPressed: _previewUrl == null
                     ? null
                     : () =>
                           _zoom(context, ThemeController.instance.isDark.value),
@@ -536,11 +558,12 @@ class _HomeState extends State<HomePage> {
               ),
               const SizedBox(width: 8),
               FilledButton.tonal(
-                onPressed: _preview == null
+                onPressed: _previewUrl == null
                     ? null
                     : () => downloadImage(
-                        _preview!,
-                        filename: buildDownloadName(),
+                        _previewUrl!,
+                        filename:
+                            'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
                       ),
                 style: FilledButton.styleFrom(
                   backgroundColor: dark
@@ -561,9 +584,7 @@ class _HomeState extends State<HomePage> {
               FilledButton.tonal(
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => HistoryPage(darkInitial: dark),
-                  ),
+                  MaterialPageRoute(builder: (_) => const HistoryPage()),
                 ),
                 style: FilledButton.styleFrom(
                   backgroundColor: dark
@@ -604,11 +625,12 @@ class _HomeState extends State<HomePage> {
   }
 
   void _zoom(BuildContext context, bool dark) {
-    if (_preview == null) return;
+    if (_previewUrl == null) return;
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.75),
       builder: (_) {
+        final h = MediaQuery.of(context).size.height;
         return Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.all(16),
@@ -622,12 +644,21 @@ class _HomeState extends State<HomePage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: InteractiveViewer(
-                    minScale: 0.5,
-                    maxScale: 4,
-                    child: Image.network(_preview!, fit: BoxFit.contain),
+                SizedBox(
+                  height: h - 160,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: InteractiveViewer(
+                      minScale: 0.5,
+                      maxScale: 4,
+                      child: Center(
+                        child: Image.network(
+                          _previewUrl!,
+                          fit: BoxFit.contain,
+                          gaplessPlayback: true,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -636,8 +667,9 @@ class _HomeState extends State<HomePage> {
                   children: [
                     FilledButton.tonal(
                       onPressed: () => downloadImage(
-                        _preview!,
-                        filename: buildDownloadName(),
+                        _previewUrl!,
+                        filename:
+                            'eduimage_${DateTime.now().millisecondsSinceEpoch}',
                       ),
                       child: const Text('Baixar'),
                     ),
