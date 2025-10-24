@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:app/core/configs/theme/theme_controller.dart';
+import 'package:app/core/utils/naming.dart';
 import 'package:app/features/auth/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -537,7 +538,10 @@ class _HomeState extends State<HomePage> {
               FilledButton.tonal(
                 onPressed: _preview == null
                     ? null
-                    : () => downloadImage(_preview!, filename: 'eduimage.png'),
+                    : () => downloadImage(
+                        _preview!,
+                        filename: buildDownloadName(),
+                      ),
                 style: FilledButton.styleFrom(
                   backgroundColor: dark
                       ? const Color(0xff1F2937)
@@ -631,8 +635,10 @@ class _HomeState extends State<HomePage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     FilledButton.tonal(
-                      onPressed: () =>
-                          downloadImage(_preview!, filename: 'eduimage.png'),
+                      onPressed: () => downloadImage(
+                        _preview!,
+                        filename: buildDownloadName(),
+                      ),
                       child: const Text('Baixar'),
                     ),
                     const SizedBox(width: 8),
@@ -988,17 +994,19 @@ class _HomeState extends State<HomePage> {
                                   await u.updateDisplayName(name);
                                   await u.reload();
                                   setState(() {});
-                                  if (mounted)
+                                  if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text('Nome atualizado.'),
                                       ),
                                     );
+                                  }
                                 } catch (e) {
-                                  if (mounted)
+                                  if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(content: Text('Erro: $e')),
                                     );
+                                  }
                                 }
                               },
                               trailing: const Icon(Icons.chevron_right),

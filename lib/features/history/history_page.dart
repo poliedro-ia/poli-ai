@@ -1,3 +1,4 @@
+import 'package:app/core/utils/naming.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
@@ -168,9 +169,9 @@ class _HistoryPageState extends State<HistoryPage> {
           builder: (context, c) {
             final w = c.maxWidth;
             int cross = 2;
-            if (w >= 1400)
+            if (w >= 1400) {
               cross = 6;
-            else if (w >= 1200)
+            } else if (w >= 1200)
               cross = 5;
             else if (w >= 900)
               cross = 4;
@@ -256,22 +257,25 @@ class _HistoryPageState extends State<HistoryPage> {
                         onPressed: () async {
                           await SmartImage.download(
                             src,
-                            filename: 'eduimage_$index.png',
+                            filename: buildDownloadName(),
                           );
-                          if (mounted)
+                          if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Imagem salva.')),
                             );
+                          }
                         },
                         icon: const Icon(
                           Icons.download_rounded,
                           color: Colors.white,
                         ),
                       ),
+
                       PopupMenuButton<String>(
                         onSelected: (v) async {
-                          if (v == 'delete')
+                          if (v == 'delete') {
                             await _confirmDelete(ref, storagePath, src);
+                          }
                         },
                         itemBuilder: (_) => [
                           const PopupMenuItem(
@@ -328,15 +332,17 @@ class _HistoryPageState extends State<HistoryPage> {
         } catch (_) {}
       }
       await ref.delete();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Imagem removida.')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Erro ao apagar: $e')));
+      }
     }
   }
 
