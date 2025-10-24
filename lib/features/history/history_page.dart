@@ -1,12 +1,11 @@
+import 'package:app/core/utils/media_utils.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/common/widgets/smart_image.dart';
-import 'package:app/core/utils/media_utils.dart';
 import 'package:app/features/home/home_page.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -17,7 +16,7 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  bool _dark = true;
+  late bool _dark;
 
   @override
   void initState() {
@@ -32,10 +31,8 @@ class _HistoryPageState extends State<HistoryPage> {
   Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
   Color get _textSub =>
       _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
+  Color get _cta => const Color(0xff2563EB);
   Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
-
-  String _fileName([int? i]) =>
-      'PoliAI_${DateTime.now().millisecondsSinceEpoch}${i != null ? '_$i' : ''}.png';
 
   PreferredSizeWidget _appBar() {
     return AppBar(
@@ -64,7 +61,6 @@ class _HistoryPageState extends State<HistoryPage> {
         Padding(
           padding: EdgeInsets.only(right: kIsWeb ? 14 : 10),
           child: IconButton(
-            tooltip: _dark ? 'Tema claro' : 'Tema escuro',
             onPressed: () => setState(() => _dark = !_dark),
             icon: Icon(
               _dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
@@ -129,16 +125,14 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _gridFor(String uid) {
-    final stream = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('images')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
-
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: stream,
-      builder: (_, snap) {
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('images')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snap) {
         if (snap.hasError) {
           return Center(
             child: Text(
@@ -165,7 +159,6 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
           );
         }
-
         return LayoutBuilder(
           builder: (context, c) {
             final w = c.maxWidth;
@@ -178,7 +171,6 @@ class _HistoryPageState extends State<HistoryPage> {
               cross = 4;
             else if (w >= 640)
               cross = 3;
-
             return GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -191,24 +183,17 @@ class _HistoryPageState extends State<HistoryPage> {
               itemBuilder: (_, i) {
                 final doc = docs[i];
                 final d = doc.data();
+                final id = doc.id;
                 final src =
                     (d['downloadUrl'] as String?) ??
-                    (d['url'] as String?) ??
+                    (d['storagePath'] as String?) ??
                     (d['src'] as String? ?? '');
                 final prompt =
                     (d['prompt'] as String?) ??
                     (d['promptUsado'] as String? ?? '');
                 final model = (d['model'] as String?) ?? '';
-                final storagePath = (d['storagePath'] as String?) ?? '';
-                return _card(
-                  id: doc.id,
-                  src: src,
-                  prompt: prompt,
-                  model: model,
-                  storagePath: storagePath,
-                  index: i,
-                  uid: uid,
-                );
+                final storagePath = d['storagePath'] as String?;
+                return _imageCard(id, storagePath, src, prompt, model, i, docs);
               },
             );
           },
@@ -217,17 +202,21 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _card({
-    required String id,
-    required String uid,
-    required String src,
-    required String prompt,
-    required String model,
-    required String storagePath,
-    required int index,
-  }) {
+  Widget _imageCard(
+    String docId,
+    String? storagePath,
+    String src,
+    String prompt,
+    String model,
+    int index,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> allDocs,
+  ) {
+    final overlayColor = _dark
+        ? const Color(0xAA151827)
+        : const Color(0xCCFFFFFF);
     return InkWell(
-      onTap: () => _openViewer(id, uid, src, prompt, model, storagePath),
+      onTap: () =>
+          _openViewer(docId, storagePath, src, prompt, model, index, allDocs),
       borderRadius: BorderRadius.circular(14),
       child: Ink(
         decoration: BoxDecoration(
@@ -242,55 +231,72 @@ class _HistoryPageState extends State<HistoryPage> {
               Positioned.fill(
                 child: SmartImage(src: src, fit: BoxFit.cover),
               ),
-              Positioned(
-                right: 8,
-                bottom: 8,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.45),
-                    borderRadius: BorderRadius.circular(12),
+              if (kIsWeb)
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Container(
+                    decoration: ShapeDecoration(
+                      color: overlayColor,
+                      shape: const StadiumBorder(),
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          tooltip: 'Ampliar',
+                          onPressed: () => _openViewer(
+                            docId,
+                            storagePath,
+                            src,
+                            prompt,
+                            model,
+                            index,
+                            allDocs,
+                          ),
+                          icon: Icon(
+                            Icons.fullscreen,
+                            color: _dark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Baixar',
+                          onPressed: () => downloadImage(
+                            src,
+                            filename:
+                                'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+                          ),
+                          icon: Icon(
+                            Icons.download_rounded,
+                            color: _dark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Excluir',
+                          onPressed: () =>
+                              _confirmDelete(docId, storagePath, src),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        tooltip: 'Ampliar',
-                        onPressed: () => _openViewer(
-                          id,
-                          uid,
-                          src,
-                          prompt,
-                          model,
-                          storagePath,
-                        ),
-                        icon: const Icon(Icons.fullscreen, color: Colors.white),
-                      ),
-                      IconButton(
-                        tooltip: 'Baixar',
-                        onPressed: () async {
-                          await downloadImage(src, filename: _fileName(index));
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Imagem salva')),
-                            );
-                          }
-                        },
-                        icon: const Icon(
-                          Icons.download_rounded,
-                          color: Colors.white,
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Excluir',
-                        onPressed: () => _confirmDelete(id, uid, storagePath),
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                )
+              else
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Material(
+                    color: overlayColor,
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      color: _dark ? Colors.white : Colors.black87,
+                      onPressed: () => _confirmDelete(docId, storagePath, src),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -298,87 +304,73 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Future<void> _confirmDelete(String id, String uid, String storagePath) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (_) => AlertDialog(
-        title: const Text('Remover imagem'),
-        content: const Text('Deseja apagar a imagem do seu histórico?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Apagar'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    await _deleteImage(id: id, uid: uid, storagePath: storagePath);
-  }
-
-  Future<void> _deleteImage({
-    required String id,
-    required String uid,
-    required String storagePath,
-  }) async {
-    try {
-      if (storagePath.isNotEmpty) {
-        try {
-          await FirebaseStorage.instance.ref(storagePath).delete();
-        } catch (_) {}
-      }
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('images')
-          .doc(id)
-          .delete();
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Imagem removida')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro ao apagar: $e')));
-      }
-    }
-  }
-
   void _openViewer(
-    String id,
-    String uid,
+    String docId,
+    String? storagePath,
     String src,
     String prompt,
-    String model,
-    String storagePath,
-  ) {
+    String model, [
+    int startIndex = 0,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>>? allDocs,
+  ]) {
+    final size = MediaQuery.of(context).size;
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.75),
       builder: (_) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(16),
-          child: LayoutBuilder(
-            builder: (context, c) {
-              final isWide = c.maxWidth >= 900;
-              return Container(
-                decoration: BoxDecoration(
-                  color: _layer,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _border),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: isWide
-                    ? Row(
+        final isWide = size.width >= 900;
+
+        if (kIsWeb && allDocs != null && isWide) {
+          int current = startIndex;
+          String getSrc(int i) {
+            final d = allDocs[i].data();
+            return (d['downloadUrl'] as String?) ??
+                (d['storagePath'] as String?) ??
+                (d['src'] as String? ?? '');
+          }
+
+          String getPrompt(int i) {
+            final d = allDocs[i].data();
+            return (d['prompt'] as String?) ??
+                (d['promptUsado'] as String? ?? '');
+          }
+
+          String getModel(int i) {
+            final d = allDocs[i].data();
+            return (d['model'] as String?) ?? '';
+          }
+
+          String? getStorage(int i) {
+            final d = allDocs[i].data();
+            return d['storagePath'] as String?;
+          }
+
+          return StatefulBuilder(
+            builder: (context, setS) {
+              void go(int dir) {
+                final next = (current + dir) % allDocs.length;
+                setS(() => current = next < 0 ? allDocs.length - 1 : next);
+              }
+
+              final curSrc = getSrc(current);
+              final curPrompt = getPrompt(current);
+              final curModel = getModel(current);
+              final curId = allDocs[current].id;
+              final curStorage = getStorage(current);
+
+              return Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: const EdgeInsets.all(12),
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _layer,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _border),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(56, 32, 56, 12),
+                      child: Row(
                         children: [
                           Expanded(
                             flex: 6,
@@ -387,6 +379,112 @@ class _HistoryPageState extends State<HistoryPage> {
                               child: InteractiveViewer(
                                 minScale: 0.5,
                                 maxScale: 4,
+                                child: Center(
+                                  child: SmartImage(
+                                    src: curSrc,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 18),
+                          Flexible(
+                            flex: 5,
+                            child: _detailsPaneWeb(
+                              curPrompt,
+                              curModel,
+                              () {
+                                downloadImage(
+                                  curSrc,
+                                  filename:
+                                      'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+                                );
+                              },
+                              () {
+                                Navigator.pop(context);
+                                _confirmDelete(curId, curStorage, curSrc);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      top: 10,
+                      right: 18,
+                      child: IconButton(
+                        tooltip: 'Fechar',
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: _textMain.withOpacity(.85),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                    Positioned(
+                      left: 12,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: IconButton(
+                          tooltip: 'Anterior',
+                          icon: Icon(
+                            Icons.chevron_left_rounded,
+                            size: 32,
+                            color: _textMain.withOpacity(.85),
+                          ),
+                          onPressed: () => go(-1),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 12,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: IconButton(
+                          tooltip: 'Próxima',
+                          icon: Icon(
+                            Icons.chevron_right_rounded,
+                            size: 32,
+                            color: _textMain.withOpacity(.85),
+                          ),
+                          onPressed: () => go(1),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        }
+
+        final isWideLayout = isWide;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(12),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: size.height * 0.9),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _layer,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _border),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: isWideLayout
+                  ? Row(
+                      children: [
+                        Expanded(
+                          flex: 6,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: InteractiveViewer(
+                              minScale: 0.5,
+                              maxScale: 4,
+                              child: Center(
                                 child: SmartImage(
                                   src: src,
                                   fit: BoxFit.contain,
@@ -394,56 +492,140 @@ class _HistoryPageState extends State<HistoryPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 4,
-                            child: _detailsPane(
-                              id,
-                              uid,
-                              src,
-                              prompt,
-                              model,
-                              storagePath,
-                            ),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: AspectRatio(
-                              aspectRatio: 16 / 9,
-                              child: SmartImage(src: src, fit: BoxFit.cover),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _detailsPane(
-                            id,
-                            uid,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 4,
+                          child: _detailsPane(
                             src,
                             prompt,
                             model,
+                            docId,
                             storagePath,
                           ),
-                        ],
-                      ),
-              );
-            },
+                        ),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: InteractiveViewer(
+                              minScale: 0.5,
+                              maxScale: 4,
+                              child: Center(
+                                child: SmartImage(
+                                  src: src,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _detailsPane(src, prompt, model, docId, storagePath),
+                        const SizedBox(height: 12),
+                        SafeArea(
+                          top: false,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              FilledButton.tonal(
+                                onPressed: () => downloadImage(
+                                  src,
+                                  filename:
+                                      'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+                                ),
+                                child: const Text('Baixar'),
+                              ),
+                              const SizedBox(width: 8),
+                              FilledButton.tonal(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _confirmDelete(docId, storagePath, src);
+                                },
+                                child: const Text('Excluir'),
+                              ),
+                              const SizedBox(width: 8),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Fechar'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _detailsPane(
-    String id,
+  Future<void> _confirmDelete(
+    String docId,
+    String? storagePath,
+    String src,
+  ) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Remover imagem?'),
+        content: const Text('A imagem será removida do seu histórico.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _deleteImage(uid, docId, storagePath: storagePath, downloadUrl: src);
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Imagem removida.')));
+    }
+  }
+
+  Future<void> _deleteImage(
     String uid,
+    String docId, {
+    String? storagePath,
+    String? downloadUrl,
+  }) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('images')
+          .doc(docId)
+          .delete();
+    } catch (_) {}
+    try {
+      if (storagePath != null && storagePath.isNotEmpty) {
+        await FirebaseStorage.instance.ref(storagePath).delete();
+      } else if ((downloadUrl ?? '').startsWith('https://')) {
+        await FirebaseStorage.instance.refFromURL(downloadUrl!).delete();
+      }
+    } catch (_) {}
+  }
+
+  Widget _detailsPane(
     String src,
     String prompt,
     String model,
-    String storagePath,
+    String docId,
+    String? storagePath,
   ) {
     return Container(
       decoration: BoxDecoration(
@@ -484,47 +666,112 @@ class _HistoryPageState extends State<HistoryPage> {
             style: TextStyle(color: _textMain, height: 1.35),
           ),
           const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(
+              spacing: 8,
+              children: [
+                FilledButton.tonal(
+                  onPressed: () => downloadImage(
+                    src,
+                    filename:
+                        'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+                  ),
+                  child: const Text('Baixar'),
+                ),
+                FilledButton.tonal(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _confirmDelete(docId, storagePath, src);
+                  },
+                  child: const Text('Excluir'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Fechar'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailsPaneWeb(
+    String prompt,
+    String model,
+    VoidCallback onDownload,
+    VoidCallback onDelete,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _dark ? const Color(0xff0F1220) : Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: _border),
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 18, 12, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Detalhes',
+            style: TextStyle(
+              color: _textMain,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (model.isNotEmpty) ...[
+            Text(
+              'Modelo',
+              style: TextStyle(color: _textSub, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            Text(model, style: TextStyle(color: _textMain)),
+            const SizedBox(height: 14),
+          ],
+          Text(
+            'Prompt utilizado',
+            style: TextStyle(color: _textSub, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Text(
+                prompt.isEmpty ? 'Indisponível' : prompt,
+                style: TextStyle(
+                  color: _textMain,
+                  height: 1.35,
+                  fontSize: 15.5,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
-              FilledButton.tonal(
-                onPressed: () async {
-                  await downloadImage(src, filename: _fileName());
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Imagem salva')),
-                    );
-                  }
-                },
-                child: const Text('Baixar'),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.tonal(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: src));
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('Link copiado')));
-                },
-                child: const Text('Copiar link'),
-              ),
-              const Spacer(),
-              IconButton.filledTonal(
-                onPressed: () => _confirmDelete(id, uid, storagePath),
-                icon: const Icon(Icons.delete_outline),
-                style: ButtonStyle(
-                  backgroundColor: WidgetStatePropertyAll(
-                    _dark ? const Color(0xff2A1520) : const Color(0xffFFE8EC),
+              Expanded(
+                child: FilledButton.tonal(
+                  onPressed: onDownload,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(56),
+                    textStyle: const TextStyle(fontSize: 16),
                   ),
-                  foregroundColor: WidgetStatePropertyAll(
-                    _dark ? const Color(0xffFCA5B1) : const Color(0xffC81E3A),
-                  ),
+                  child: const Text('Baixar'),
                 ),
-                tooltip: 'Excluir',
               ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Fechar'),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.tonal(
+                  onPressed: onDelete,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(56),
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
+                  child: const Text('Excluir'),
+                ),
               ),
             ],
           ),

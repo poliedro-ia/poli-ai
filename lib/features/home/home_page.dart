@@ -90,10 +90,12 @@ class _HomeState extends State<HomePage> {
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      bool? _dark;
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => Login(darkInitial: _dark)),
+        MaterialPageRoute(
+          builder: (_) =>
+              Login(darkInitial: ThemeController.instance.isDark.value),
+        ),
       );
       return;
     }
@@ -127,8 +129,8 @@ class _HomeState extends State<HomePage> {
 
       setState(() => _preview = dataUrl);
 
-      final mime = dataUrl.substring(5, dataUrl.indexOf(';')); // ex: image/png
-      final ext = mime.split('/').last; // ex: png
+      final mime = dataUrl.substring(5, dataUrl.indexOf(';'));
+      final ext = mime.split('/').last;
       final b64 = dataUrl.split(',').last;
       final bytes = base64Decode(b64);
 
@@ -224,7 +226,11 @@ class _HomeState extends State<HomePage> {
           child: FilledButton.tonal(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => HistoryPage(darkInitial: dark)),
+              MaterialPageRoute(
+                builder: (_) => HistoryPage(
+                  darkInitial: ThemeController.instance.isDark.value,
+                ),
+              ),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: dark
@@ -511,26 +517,31 @@ class _HomeState extends State<HomePage> {
                     ),
                   ),
                 )
-              : Container(
-                  height: kIsWeb ? 320 : 260,
-                  decoration: BoxDecoration(
-                    color: _fieldBg(dark),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _fieldBorder(dark)),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Image.network(
-                            _previewUrl ?? _preview!,
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: LayoutBuilder(
+                    builder: (_, c) {
+                      final ar = _aspect == '1:1'
+                          ? 1.0
+                          : (_aspect == '4:3' ? 4 / 3 : 16 / 9);
+                      return AspectRatio(
+                        aspectRatio: ar,
+                        child: SizedBox.expand(
+                          child: FittedBox(
                             fit: BoxFit.cover,
-                            gaplessPlayback: true,
+                            child: SizedBox(
+                              width: c.maxWidth,
+                              height: c.maxWidth / ar,
+                              child: Image.network(
+                                _previewUrl ?? _preview!,
+                                fit: BoxFit.cover,
+                                gaplessPlayback: true,
+                              ),
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
           SizedBox(height: kIsWeb ? 20 : 16),
@@ -584,7 +595,11 @@ class _HomeState extends State<HomePage> {
               FilledButton.tonal(
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const HistoryPage()),
+                  MaterialPageRoute(
+                    builder: (_) => HistoryPage(
+                      darkInitial: ThemeController.instance.isDark.value,
+                    ),
+                  ),
                 ),
                 style: FilledButton.styleFrom(
                   backgroundColor: dark
@@ -625,62 +640,142 @@ class _HomeState extends State<HomePage> {
   }
 
   void _zoom(BuildContext context, bool dark) {
-    if (_previewUrl == null) return;
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.75),
-      builder: (_) {
-        final h = MediaQuery.of(context).size.height;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: _layer(dark),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _border(dark)),
-            ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  height: h - 160,
-                  child: ClipRRect(
+    final src = _previewUrl ?? _preview;
+    if (src == null) return;
+
+    if (kIsWeb) {
+      showDialog(
+        context: context,
+        barrierColor: Colors.black.withOpacity(0.75),
+        builder: (_) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _layer(dark),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _border(dark)),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: InteractiveViewer(
                       minScale: 0.5,
                       maxScale: 4,
-                      child: Center(
-                        child: Image.network(
-                          _previewUrl!,
-                          fit: BoxFit.contain,
-                          gaplessPlayback: true,
-                        ),
-                      ),
+                      child: Image.network(src, fit: BoxFit.contain),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    FilledButton.tonal(
-                      onPressed: () => downloadImage(
-                        _previewUrl!,
-                        filename:
-                            'eduimage_${DateTime.now().millisecondsSinceEpoch}',
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      FilledButton.tonal(
+                        onPressed: () => downloadImage(
+                          src,
+                          filename:
+                              'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+                        ),
+                        child: const Text('Baixar'),
                       ),
-                      child: const Text('Baixar'),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Fechar'),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Fechar'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.75),
+      builder: (_) {
+        final size = MediaQuery.of(context).size;
+        final ar = _aspect == '1:1' ? 1.0 : (_aspect == '4:3' ? 4 / 3 : 16 / 9);
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(12),
+          child: SafeArea(
+            top: false,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: size.height - 24,
+                maxWidth: size.width - 24,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _layer(dark),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _border(dark)),
                 ),
-              ],
+                padding: const EdgeInsets.all(12),
+                child: LayoutBuilder(
+                  builder: (_, c) {
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: InteractiveViewer(
+                              minScale: 0.5,
+                              maxScale: 4,
+                              child: Center(
+                                child: AspectRatio(
+                                  aspectRatio: ar,
+                                  child: FittedBox(
+                                    fit: BoxFit.contain,
+                                    child: Image.network(src),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: (c.maxWidth - 10) / 2,
+                                child: FilledButton.tonal(
+                                  onPressed: () => downloadImage(
+                                    src,
+                                    filename:
+                                        'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+                                  ),
+                                  child: const Text('Baixar'),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              SizedBox(
+                                width: (c.maxWidth - 10) / 2,
+                                child: FilledButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Fechar'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         );
@@ -866,10 +961,12 @@ class _HomeState extends State<HomePage> {
               label: 'Admin',
             ),
         ];
+        final isAdminTabMobile = !kIsWeb && _isAdmin && _currentIndex == 2;
+
         return Scaffold(
           backgroundColor: _bg(dark),
           resizeToAvoidBottomInset: true,
-          appBar: _appBar(dark),
+          appBar: isAdminTabMobile ? null : _appBar(dark),
           body: _currentIndex == 0
               ? _createBody(dark)
               : _currentIndex == 1
@@ -878,7 +975,20 @@ class _HomeState extends State<HomePage> {
           bottomNavigationBar: showBottomNav
               ? BottomNavigationBar(
                   currentIndex: _currentIndex.clamp(0, items.length - 1),
-                  onTap: (i) => setState(() => _currentIndex = i),
+                  onTap: (i) {
+                    if (!kIsWeb &&
+                        i == 1 &&
+                        FirebaseAuth.instance.currentUser == null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => Login(darkInitial: dark),
+                        ),
+                      );
+                      return;
+                    }
+                    setState(() => _currentIndex = i);
+                  },
                   backgroundColor: _layer(dark),
                   selectedItemColor: _cta,
                   unselectedItemColor: _subText(dark),
@@ -912,6 +1022,74 @@ class _HomeState extends State<HomePage> {
   }
 
   Widget _accountBody(bool dark) {
+    if (!kIsWeb && FirebaseAuth.instance.currentUser == null) {
+      final side = 24.0;
+      return SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: side, vertical: 32),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _layer(dark),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _border(dark)),
+                ),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    Icon(Icons.lock_outline, size: 48, color: _subText(dark)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Faça login para continuar',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _text(dark),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Acesse sua conta para ver seu perfil e histórico.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: _subText(dark)),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => Login(darkInitial: dark),
+                            ),
+                          );
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _cta,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text('Fazer login'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final isWeb = kIsWeb;
     final side = isWeb ? 32.0 : 20.0;
     final maxW = isWeb ? 900.0 : double.infinity;
@@ -986,61 +1164,12 @@ class _HomeState extends State<HomePage> {
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      HistoryPage(darkInitial: dark),
+                                  builder: (_) => HistoryPage(
+                                    darkInitial:
+                                        ThemeController.instance.isDark.value,
+                                  ),
                                 ),
                               ),
-                              trailing: const Icon(Icons.chevron_right),
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: _layer(dark),
-                              border: Border.all(color: _border(dark)),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            padding: const EdgeInsets.all(16),
-                            child: ListTile(
-                              leading: Icon(
-                                Icons.badge_outlined,
-                                color: _text(dark),
-                              ),
-                              title: Text(
-                                'Editar nome',
-                                style: TextStyle(
-                                  color: _text(dark),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              onTap: () async {
-                                final u = FirebaseAuth.instance.currentUser;
-                                if (u == null) return;
-                                final current = u.displayName ?? '';
-                                final name = await showDialog<String>(
-                                  context: context,
-                                  builder: (_) =>
-                                      EditNameDialog(initialName: current),
-                                );
-                                if (name == null || name.isEmpty) return;
-                                try {
-                                  await u.updateDisplayName(name);
-                                  await u.reload();
-                                  setState(() {});
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Nome atualizado.'),
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Erro: $e')),
-                                    );
-                                  }
-                                }
-                              },
                               trailing: const Icon(Icons.chevron_right),
                             ),
                           ),
@@ -1142,12 +1271,7 @@ class _HomeState extends State<HomePage> {
                               onTap: () async {
                                 await FirebaseAuth.instance.signOut();
                                 if (!mounted) return;
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(
-                                    builder: (_) => const HomePage(),
-                                  ),
-                                  (_) => false,
-                                );
+                                Navigator.of(context).pop();
                               },
                               trailing: const Icon(Icons.chevron_right),
                             ),
