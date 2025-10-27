@@ -31,7 +31,6 @@ class _HistoryPageState extends State<HistoryPage> {
   Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
   Color get _textSub =>
       _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
-  Color get _cta => const Color(0xff2563EB);
   Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
 
   PreferredSizeWidget _appBar() {
@@ -380,9 +379,22 @@ class _HistoryPageState extends State<HistoryPage> {
                                 minScale: 0.5,
                                 maxScale: 4,
                                 child: Center(
-                                  child: SmartImage(
-                                    src: curSrc,
-                                    fit: BoxFit.contain,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: _border.withOpacity(.8),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: SmartImage(
+                                        src: curSrc,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -526,35 +538,6 @@ class _HistoryPageState extends State<HistoryPage> {
                         const SizedBox(height: 12),
                         _detailsPane(src, prompt, model, docId, storagePath),
                         const SizedBox(height: 12),
-                        SafeArea(
-                          top: false,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              FilledButton.tonal(
-                                onPressed: () => downloadImage(
-                                  src,
-                                  filename:
-                                      'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
-                                ),
-                                child: const Text('Baixar'),
-                              ),
-                              const SizedBox(width: 8),
-                              FilledButton.tonal(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _confirmDelete(docId, storagePath, src);
-                                },
-                                child: const Text('Excluir'),
-                              ),
-                              const SizedBox(width: 8),
-                              FilledButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Fechar'),
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
             ),

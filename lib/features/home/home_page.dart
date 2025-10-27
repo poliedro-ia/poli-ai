@@ -1093,6 +1093,7 @@ class _HomeState extends State<HomePage> {
     final isWeb = kIsWeb;
     final side = isWeb ? 32.0 : 20.0;
     final maxW = isWeb ? 900.0 : double.infinity;
+    final user = FirebaseAuth.instance.currentUser;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -1118,7 +1119,7 @@ class _HomeState extends State<HomePage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    FirebaseAuth.instance.currentUser?.displayName ?? 'Usuário',
+                    user?.displayName ?? 'Usuário',
                     style: TextStyle(
                       color: _text(dark),
                       fontSize: 22,
@@ -1127,7 +1128,7 @@ class _HomeState extends State<HomePage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    FirebaseAuth.instance.currentUser?.email ?? '',
+                    user?.email ?? '',
                     style: TextStyle(color: _subText(dark), fontSize: 16),
                   ),
                   const SizedBox(height: 28),
@@ -1170,6 +1171,53 @@ class _HomeState extends State<HomePage> {
                                   ),
                                 ),
                               ),
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _layer(dark),
+                              border: Border.all(color: _border(dark)),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            child: ListTile(
+                              leading: Icon(Icons.edit, color: _text(dark)),
+                              title: Text(
+                                'Editar nome de usuário',
+                                style: TextStyle(
+                                  color: _text(dark),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              onTap: () async {
+                                final initial =
+                                    FirebaseAuth
+                                        .instance
+                                        .currentUser
+                                        ?.displayName ??
+                                    '';
+                                final newName = await showDialog<String>(
+                                  context: context,
+                                  builder: (_) =>
+                                      EditNameDialog(initialName: initial),
+                                );
+                                if (newName != null &&
+                                    newName.trim().isNotEmpty &&
+                                    FirebaseAuth.instance.currentUser != null) {
+                                  await FirebaseAuth.instance.currentUser!
+                                      .updateDisplayName(newName.trim());
+                                  await FirebaseAuth.instance.currentUser!
+                                      .reload();
+                                  if (!mounted) return;
+                                  setState(() {});
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Nome atualizado.'),
+                                    ),
+                                  );
+                                }
+                              },
                               trailing: const Icon(Icons.chevron_right),
                             ),
                           ),
@@ -1271,7 +1319,13 @@ class _HomeState extends State<HomePage> {
                               onTap: () async {
                                 await FirebaseAuth.instance.signOut();
                                 if (!mounted) return;
-                                Navigator.of(context).pop();
+                                setState(() => _currentIndex = 0);
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (_) => const HomePage(),
+                                  ),
+                                  (route) => false,
+                                );
                               },
                               trailing: const Icon(Icons.chevron_right),
                             ),
