@@ -1,35 +1,22 @@
 import { onCall, CallableRequest, HttpsError } from "firebase-functions/v2/https";
-import { setGlobalOptions } from "firebase-functions/v2/options";
-import * as admin from "firebase-admin";
+import { admin } from "../config/firebase";
+import "../config/options";
+import { requireAdmin } from "../http/guards";
 
-setGlobalOptions({ region: "southamerica-east1" });
-
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-function requireAdmin(req: CallableRequest) {
-    if (!req.auth) {
-        throw new HttpsError("unauthenticated", "auth required");
-    }
-    const token = req.auth.token as Record<string, unknown>;
-    if (!token.admin) {
-        throw new HttpsError("permission-denied", "admin only");
-    }
+function uidFrom(req: CallableRequest) {
+    const v = String(req.data?.uid || "");
+    if (!v) throw new HttpsError("invalid-argument", "uid required");
+    return v;
 }
 
 export const adminSetRole = onCall({ enforceAppCheck: false }, async (req) => {
     requireAdmin(req);
-    const uid = String(req.data?.uid || "");
+    const uid = uidFrom(req);
     const makeAdmin = Boolean(req.data?.admin === true);
-    if (!uid) {
-        throw new HttpsError("invalid-argument", "uid required");
-    }
     const user = await admin.auth().getUser(uid);
     const current = user.customClaims || {};
     const next: Record<string, unknown> = { ...current };
-    if (makeAdmin) next.admin = true;
-    else delete next.admin;
+    if (makeAdmin) next.admin = true; else delete next.admin;
     await admin.auth().setCustomUserClaims(uid, next);
     await admin.auth().revokeRefreshTokens(uid);
     return { ok: true, uid, admin: makeAdmin };
@@ -37,11 +24,8 @@ export const adminSetRole = onCall({ enforceAppCheck: false }, async (req) => {
 
 export const adminSetDisabled = onCall({ enforceAppCheck: false }, async (req) => {
     requireAdmin(req);
-    const uid = String(req.data?.uid || "");
+    const uid = uidFrom(req);
     const disabled = Boolean(req.data?.disabled === true);
-    if (!uid) {
-        throw new HttpsError("invalid-argument", "uid required");
-    }
     await admin.auth().updateUser(uid, { disabled });
     return { ok: true, uid, disabled };
 });
