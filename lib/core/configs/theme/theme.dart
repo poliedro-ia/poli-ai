@@ -9,7 +9,7 @@ class AppTheme {
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.blue,
-        textStyle: TextStyle(fontSize: 20),
+        textStyle: const TextStyle(fontSize: 20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
       ),
     ),

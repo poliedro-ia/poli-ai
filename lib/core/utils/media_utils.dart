@@ -1,15 +1,15 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:io';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'dart:io';
 
 export 'media_utils_stub.dart'
-  if (dart.library.html) 'media_utils_web.dart'
-  if (dart.library.io) 'media_utils_io.dart';
-
+    if (dart.library.html) 'media_utils_web.dart'
+    if (dart.library.io) 'media_utils_io.dart';
 
 Future<Uint8List> _bytesFromSrc(String src) async {
   if (src.startsWith('data:image/')) {
@@ -17,7 +17,9 @@ Future<Uint8List> _bytesFromSrc(String src) async {
     return base64Decode(base64Part);
   }
   final resp = await http.get(Uri.parse(src));
-  if (resp.statusCode != 200) throw Exception('Falha ao baixar imagem');
+  if (resp.statusCode != 200) {
+    throw Exception('Falha ao baixar imagem');
+  }
   return resp.bodyBytes;
 }
 

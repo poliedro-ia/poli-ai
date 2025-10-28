@@ -1,17 +1,33 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 import 'package:app/common/widgets/skeleton.dart';
-import 'package:app/features/home/image_viewer_page.dart';
 import 'package:app/core/utils/media_utils.dart';
+import 'package:app/features/home/image_viewer_page.dart';
 import 'package:app/features/home/models/image_item.dart';
 
-class LocalHistoryGrid extends StatelessWidget {
-  final List<ImageItem> images;
-  const LocalHistoryGrid({super.key, required this.images});
+typedef GridItemActionsBuilder =
+    List<Widget> Function(
+      BuildContext context,
+      String src,
+      String tag,
+      ImageItem item,
+      int index,
+    );
 
-  String _fileName(int i) =>
-      'PoliAI_${DateTime.now().millisecondsSinceEpoch}_$i.png';
+class ImageGrid extends StatelessWidget {
+  final List<ImageItem> images;
+  final String heroPrefix;
+  final String filePrefix;
+  final GridItemActionsBuilder? actionsBuilder;
+
+  const ImageGrid({
+    super.key,
+    required this.images,
+    this.heroPrefix = 'img',
+    this.filePrefix = 'PoliAI',
+    this.actionsBuilder,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -36,14 +52,16 @@ class LocalHistoryGrid extends StatelessWidget {
         ),
       );
     }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
         int cross = 1;
-        if (w >= 1100)
+        if (w >= 1100) {
           cross = 3;
-        else if (w >= 700)
+        } else if (w >= 700) {
           cross = 2;
+        }
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -58,7 +76,8 @@ class LocalHistoryGrid extends StatelessWidget {
             final item = images[index];
             final src = item.src;
             final isDataUrl = src.startsWith('data:image/');
-            final tag = 'img_$index';
+            final tag = '${heroPrefix}_$index';
+
             final Widget preview = isDataUrl
                 ? Image.memory(
                     base64Decode(src.split(',').last),
@@ -73,6 +92,45 @@ class LocalHistoryGrid extends StatelessWidget {
                     errorWidget: (_, __, ___) =>
                         const Center(child: Icon(Icons.broken_image_outlined)),
                   );
+
+            List<Widget> defaultActions() => [
+              IconButton(
+                onPressed: () async {
+                  await downloadImage(
+                    src,
+                    filename:
+                        '${filePrefix}_${DateTime.now().millisecondsSinceEpoch}_$index.png',
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Imagem salva.')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.download, color: Colors.white),
+              ),
+              IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ImageViewerPage(
+                        src: src,
+                        tag: tag,
+                        model: item.model,
+                        prompt: item.prompt,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.fullscreen, color: Colors.white),
+              ),
+            ];
+
+            final actions =
+                actionsBuilder?.call(context, src, tag, item, index) ??
+                defaultActions();
+
             return Card(
               clipBehavior: Clip.antiAlias,
               shape: RoundedRectangleBorder(
@@ -91,48 +149,7 @@ class LocalHistoryGrid extends StatelessWidget {
                         color: Colors.black.withOpacity(0.52),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            onPressed: () async {
-                              await downloadImage(
-                                src,
-                                filename: _fileName(index),
-                              );
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Imagem salva.'),
-                                  ),
-                                );
-                              }
-                            },
-                            icon: const Icon(
-                              Icons.download,
-                              color: Colors.white,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ImageViewerPage(
-                                    src: src,
-                                    tag: tag,
-                                    model: item.model,
-                                    prompt: item.prompt,
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.fullscreen,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: Row(children: actions),
                     ),
                   ),
                 ],

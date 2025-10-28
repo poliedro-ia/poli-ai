@@ -12,8 +12,8 @@ class AuthService {
   Future<UserCredential> signIn({
     required String email,
     required String password,
-  }) async {
-    return await firebaseAuth.signInWithEmailAndPassword(
+  }) {
+    return firebaseAuth.signInWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
@@ -33,18 +33,13 @@ class AuthService {
     return cred;
   }
 
-  Future<void> sendPasswordReset(String email) async {
-    await firebaseAuth.sendPasswordResetEmail(email: email.trim());
-  }
+  Future<void> sendPasswordReset(String email) =>
+      firebaseAuth.sendPasswordResetEmail(email: email.trim());
 
   Future<void> sendEmailVerification() async {
     final u = firebaseAuth.currentUser;
-    if (u != null && !u.emailVerified) {
-      await u.sendEmailVerification();
-    }
+    if (u != null && !u.emailVerified) await u.sendEmailVerification();
   }
 
-  Future<void> signOut() async {
-    await firebaseAuth.signOut();
-  }
+  Future<void> signOut() => firebaseAuth.signOut();
 }

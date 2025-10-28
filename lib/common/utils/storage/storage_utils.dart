@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'dart:html' as html;
+import 'package:firebase_storage/firebase_storage.dart';
+import 'platform_downloader_stub.dart'
+    if (dart.library.html) 'platform_downloader_web.dart'
+    as platform;
 
 class StorageUtils {
   static Future<String> resolveDownloadUrl({
@@ -26,11 +28,7 @@ class StorageUtils {
     required String filename,
   }) async {
     if (kIsWeb) {
-      final a = html.AnchorElement(href: url)..download = filename;
-      html.document.body!.append(a);
-      a.click();
-      a.remove();
-      return;
+      await platform.PlatformDownloader().download(url, filename);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Download disponível no Web.')),
@@ -46,6 +44,4 @@ class StorageUtils {
     await ref.putData(bytes, SettableMetadata(contentType: 'image/png'));
     return ref.getDownloadURL();
   }
-
-  static Future<void> downloadByUrl(String finalUrl, {required String filename}) async {}
 }

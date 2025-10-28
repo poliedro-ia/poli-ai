@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class BasicAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final Widget ? title;
+  final Widget? title;
   const BasicAppBar({this.title, super.key});
 
   @override
@@ -12,9 +12,7 @@ class BasicAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: true,
       title: title ?? const Text(''),
       leading: IconButton(
-        onPressed: () {
-          Navigator.pop(context);
-        },
+        onPressed: () => Navigator.pop(context),
         icon: Container(
           height: 50,
           width: 50,
@@ -22,7 +20,11 @@ class BasicAppBar extends StatelessWidget implements PreferredSizeWidget {
             color: Colors.black.withOpacity(0.03),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.arrow_back_ios_new, size: 15, color: Colors.black),
+          child: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 15,
+            color: Colors.black,
+          ),
         ),
       ),
     );

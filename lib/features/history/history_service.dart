@@ -1,4 +1,3 @@
-// lib/features/history/history_service.dart
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,17 +10,12 @@ class HistoryService {
   final _st = FirebaseStorage.instance;
 
   Future<void> _ensureAuthAndAppCheck() async {
-    // Aguarda usuário realmente logado
     final u =
         FirebaseAuth.instance.currentUser ??
         await FirebaseAuth.instance.authStateChanges().firstWhere(
           (x) => x != null,
         );
-
-    // Garante token de ID fresco
     await u!.getIdToken(true);
-
-    // Garante token do App Check (força refresh se necessário)
     await FirebaseAppCheck.instance.getToken(true);
   }
 

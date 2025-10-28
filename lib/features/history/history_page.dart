@@ -1,12 +1,12 @@
 import 'package:app/core/utils/media_utils.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:app/core/configs/assets/images.dart';
-import 'package:app/common/widgets/smart_image.dart';
-import 'package:app/features/home/home_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:app/features/history/ui/history_ui.dart';
+import 'package:app/features/history/widgets/history_card.dart';
+import 'package:app/features/history/widgets/viewer_dialog.dart';
 
 class HistoryPage extends StatefulWidget {
   final bool? darkInitial;
@@ -24,90 +24,34 @@ class _HistoryPageState extends State<HistoryPage> {
     _dark = widget.darkInitial ?? true;
   }
 
-  Color get _bg => _dark ? const Color(0xff0B0E19) : const Color(0xffF7F8FA);
-  Color get _layer => _dark ? const Color(0xff121528) : Colors.white;
-  Color get _border =>
-      _dark ? const Color(0xff1E2233) : const Color(0xffE7EAF0);
-  Color get _textMain => _dark ? Colors.white : const Color(0xff0B1220);
-  Color get _textSub =>
-      _dark ? const Color(0xff97A0B5) : const Color(0xff5A6477);
-  Color get _barBg => _dark ? const Color(0xff101425) : Colors.white;
-
-  PreferredSizeWidget _appBar() {
-    return AppBar(
-      backgroundColor: _barBg,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      toolbarHeight: kIsWeb ? 76 : kToolbarHeight,
-      titleSpacing: 0,
-      title: Padding(
-        padding: EdgeInsets.only(left: kIsWeb ? 20 : 14),
-        child: GestureDetector(
-          onTap: () {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const HomePage()),
-              (route) => false,
-            );
-          },
-          child: Image.asset(
-            _dark ? Images.whiteLogo : Images.logo,
-            height: kIsWeb ? 100 : 82,
-            width: kIsWeb ? 100 : 82,
-          ),
-        ),
-      ),
-      actions: [
-        Padding(
-          padding: EdgeInsets.only(right: kIsWeb ? 14 : 10),
-          child: IconButton(
-            onPressed: () => setState(() => _dark = !_dark),
-            icon: Icon(
-              _dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
-              color: _textMain,
-              size: kIsWeb ? 24 : 22,
-            ),
-            style: IconButton.styleFrom(
-              padding: const EdgeInsets.all(10),
-              backgroundColor: _dark
-                  ? const Color(0x221E2A4A)
-                  : const Color(0x22E9EEF9),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
-      ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: _border.withOpacity(0.7)),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final u = FirebaseAuth.instance.currentUser;
+    final p = HistoryPalette(_dark);
     return Scaffold(
-      backgroundColor: _bg,
-      appBar: _appBar(),
-      body: u == null ? _requireLogin() : _gridFor(u.uid),
+      backgroundColor: p.bg,
+      appBar: historyAppBar(
+        context: context,
+        palette: p,
+        onToggleTheme: () => setState(() => _dark = !_dark),
+      ),
+      body: u == null ? _requireLogin(p) : _gridFor(p, u.uid),
     );
   }
 
-  Widget _requireLogin() {
+  Widget _requireLogin(HistoryPalette p) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.lock_outline, color: _textSub, size: 48),
+            Icon(Icons.lock_outline, color: p.textSub, size: 48),
             const SizedBox(height: 12),
             Text(
               'Entre para visualizar seu histórico',
               style: TextStyle(
-                color: _textMain,
+                color: p.textMain,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -115,7 +59,7 @@ class _HistoryPageState extends State<HistoryPage> {
             const SizedBox(height: 8),
             Text(
               'Suas imagens geradas aparecerão aqui.',
-              style: TextStyle(color: _textSub),
+              style: TextStyle(color: p.textSub),
             ),
           ],
         ),
@@ -123,7 +67,7 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _gridFor(String uid) {
+  Widget _gridFor(HistoryPalette p, String uid) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
           .collection('users')
@@ -136,7 +80,7 @@ class _HistoryPageState extends State<HistoryPage> {
           return Center(
             child: Text(
               'Erro: ${snap.error}',
-              style: TextStyle(color: _textMain),
+              style: TextStyle(color: p.textMain),
             ),
           );
         }
@@ -154,7 +98,7 @@ class _HistoryPageState extends State<HistoryPage> {
           return Center(
             child: Text(
               'Nenhuma imagem ainda',
-              style: TextStyle(color: _textSub),
+              style: TextStyle(color: p.textSub),
             ),
           );
         }
@@ -162,14 +106,15 @@ class _HistoryPageState extends State<HistoryPage> {
           builder: (context, c) {
             final w = c.maxWidth;
             int cross = 2;
-            if (w >= 1400)
+            if (w >= 1400) {
               cross = 6;
-            else if (w >= 1200)
+            } else if (w >= 1200) {
               cross = 5;
-            else if (w >= 900)
+            } else if (w >= 900) {
               cross = 4;
-            else if (w >= 640)
+            } else if (w >= 640) {
               cross = 3;
+            }
             return GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -192,7 +137,29 @@ class _HistoryPageState extends State<HistoryPage> {
                     (d['promptUsado'] as String? ?? '');
                 final model = (d['model'] as String?) ?? '';
                 final storagePath = d['storagePath'] as String?;
-                return _imageCard(id, storagePath, src, prompt, model, i, docs);
+
+                return HistoryImageCard(
+                  palette: p,
+                  src: src,
+                  onTap: () => _openViewer(
+                    palette: p,
+                    docId: id,
+                    storagePath: storagePath,
+                    src: src,
+                    prompt: prompt,
+                    model: model,
+                    startIndex: i,
+                    allDocs: docs,
+                  ),
+                  onDownload: kIsWeb
+                      ? () => downloadImage(
+                          src,
+                          filename:
+                              'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+                        )
+                      : null,
+                  onDelete: () => _confirmDelete(id, storagePath, src),
+                );
               },
             );
           },
@@ -201,348 +168,33 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _imageCard(
-    String docId,
-    String? storagePath,
-    String src,
-    String prompt,
-    String model,
-    int index,
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> allDocs,
-  ) {
-    final overlayColor = _dark
-        ? const Color(0xAA151827)
-        : const Color(0xCCFFFFFF);
-    return InkWell(
-      onTap: () =>
-          _openViewer(docId, storagePath, src, prompt, model, index, allDocs),
-      borderRadius: BorderRadius.circular(14),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: _layer,
-          border: Border.all(color: _border),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: SmartImage(src: src, fit: BoxFit.cover),
-              ),
-              if (kIsWeb)
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: Container(
-                    decoration: ShapeDecoration(
-                      color: overlayColor,
-                      shape: const StadiumBorder(),
-                    ),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          tooltip: 'Ampliar',
-                          onPressed: () => _openViewer(
-                            docId,
-                            storagePath,
-                            src,
-                            prompt,
-                            model,
-                            index,
-                            allDocs,
-                          ),
-                          icon: Icon(
-                            Icons.fullscreen,
-                            color: _dark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Baixar',
-                          onPressed: () => downloadImage(
-                            src,
-                            filename:
-                                'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
-                          ),
-                          icon: Icon(
-                            Icons.download_rounded,
-                            color: _dark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Excluir',
-                          onPressed: () =>
-                              _confirmDelete(docId, storagePath, src),
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.redAccent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: Material(
-                    color: overlayColor,
-                    shape: const CircleBorder(),
-                    child: IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      color: _dark ? Colors.white : Colors.black87,
-                      onPressed: () => _confirmDelete(docId, storagePath, src),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _openViewer(
-    String docId,
-    String? storagePath,
-    String src,
-    String prompt,
-    String model, [
+  void _openViewer({
+    required HistoryPalette palette,
+    required String docId,
+    required String? storagePath,
+    required String src,
+    required String prompt,
+    required String model,
     int startIndex = 0,
     List<QueryDocumentSnapshot<Map<String, dynamic>>>? allDocs,
-  ]) {
-    final size = MediaQuery.of(context).size;
-    showDialog(
+  }) {
+    showHistoryViewer(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.75),
-      builder: (_) {
-        final isWide = size.width >= 900;
-
-        if (kIsWeb && allDocs != null && isWide) {
-          int current = startIndex;
-          String getSrc(int i) {
-            final d = allDocs[i].data();
-            return (d['downloadUrl'] as String?) ??
-                (d['storagePath'] as String?) ??
-                (d['src'] as String? ?? '');
-          }
-
-          String getPrompt(int i) {
-            final d = allDocs[i].data();
-            return (d['prompt'] as String?) ??
-                (d['promptUsado'] as String? ?? '');
-          }
-
-          String getModel(int i) {
-            final d = allDocs[i].data();
-            return (d['model'] as String?) ?? '';
-          }
-
-          String? getStorage(int i) {
-            final d = allDocs[i].data();
-            return d['storagePath'] as String?;
-          }
-
-          return StatefulBuilder(
-            builder: (context, setS) {
-              void go(int dir) {
-                final next = (current + dir) % allDocs.length;
-                setS(() => current = next < 0 ? allDocs.length - 1 : next);
-              }
-
-              final curSrc = getSrc(current);
-              final curPrompt = getPrompt(current);
-              final curModel = getModel(current);
-              final curId = allDocs[current].id;
-              final curStorage = getStorage(current);
-
-              return Dialog(
-                backgroundColor: Colors.transparent,
-                insetPadding: const EdgeInsets.all(12),
-                child: Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: _layer,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _border),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(56, 32, 56, 12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 6,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: InteractiveViewer(
-                                minScale: 0.5,
-                                maxScale: 4,
-                                child: Center(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: _border.withOpacity(.8),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    clipBehavior: Clip.antiAlias,
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: SmartImage(
-                                        src: curSrc,
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 18),
-                          Flexible(
-                            flex: 5,
-                            child: _detailsPaneWeb(
-                              curPrompt,
-                              curModel,
-                              () {
-                                downloadImage(
-                                  curSrc,
-                                  filename:
-                                      'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
-                                );
-                              },
-                              () {
-                                Navigator.pop(context);
-                                _confirmDelete(curId, curStorage, curSrc);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      top: 10,
-                      right: 18,
-                      child: IconButton(
-                        tooltip: 'Fechar',
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: _textMain.withOpacity(.85),
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                    Positioned(
-                      left: 12,
-                      top: 0,
-                      bottom: 0,
-                      child: Center(
-                        child: IconButton(
-                          tooltip: 'Anterior',
-                          icon: Icon(
-                            Icons.chevron_left_rounded,
-                            size: 32,
-                            color: _textMain.withOpacity(.85),
-                          ),
-                          onPressed: () => go(-1),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 12,
-                      top: 0,
-                      bottom: 0,
-                      child: Center(
-                        child: IconButton(
-                          tooltip: 'Próxima',
-                          icon: Icon(
-                            Icons.chevron_right_rounded,
-                            size: 32,
-                            color: _textMain.withOpacity(.85),
-                          ),
-                          onPressed: () => go(1),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        }
-
-        final isWideLayout = isWide;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(12),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: size.height * 0.9),
-            child: Container(
-              decoration: BoxDecoration(
-                color: _layer,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _border),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: isWideLayout
-                  ? Row(
-                      children: [
-                        Expanded(
-                          flex: 6,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: InteractiveViewer(
-                              minScale: 0.5,
-                              maxScale: 4,
-                              child: Center(
-                                child: SmartImage(
-                                  src: src,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 4,
-                          child: _detailsPane(
-                            src,
-                            prompt,
-                            model,
-                            docId,
-                            storagePath,
-                          ),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: InteractiveViewer(
-                              minScale: 0.5,
-                              maxScale: 4,
-                              child: Center(
-                                child: SmartImage(
-                                  src: src,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _detailsPane(src, prompt, model, docId, storagePath),
-                        const SizedBox(height: 12),
-                      ],
-                    ),
-            ),
-          ),
-        );
+      palette: palette,
+      docId: docId,
+      storagePath: storagePath,
+      src: src,
+      prompt: prompt,
+      model: model,
+      startIndex: startIndex,
+      allDocs: allDocs,
+      onDownload: () => downloadImage(
+        src,
+        filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+      ),
+      onDelete: () {
+        Navigator.pop(context);
+        _confirmDelete(docId, storagePath, src);
       },
     );
   }
@@ -601,165 +253,5 @@ class _HistoryPageState extends State<HistoryPage> {
         await FirebaseStorage.instance.refFromURL(downloadUrl!).delete();
       }
     } catch (_) {}
-  }
-
-  Widget _detailsPane(
-    String src,
-    String prompt,
-    String model,
-    String docId,
-    String? storagePath,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _dark ? const Color(0xff0F1220) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _border),
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Detalhes',
-            style: TextStyle(
-              color: _textMain,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (model.isNotEmpty) ...[
-            Text(
-              'Modelo',
-              style: TextStyle(color: _textSub, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 4),
-            Text(model, style: TextStyle(color: _textMain)),
-            const SizedBox(height: 10),
-          ],
-          Text(
-            'Prompt utilizado',
-            style: TextStyle(color: _textSub, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            prompt.isEmpty ? 'Indisponível' : prompt,
-            style: TextStyle(color: _textMain, height: 1.35),
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Wrap(
-              spacing: 8,
-              children: [
-                FilledButton.tonal(
-                  onPressed: () => downloadImage(
-                    src,
-                    filename:
-                        'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
-                  ),
-                  child: const Text('Baixar'),
-                ),
-                FilledButton.tonal(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _confirmDelete(docId, storagePath, src);
-                  },
-                  child: const Text('Excluir'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Fechar'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _detailsPaneWeb(
-    String prompt,
-    String model,
-    VoidCallback onDownload,
-    VoidCallback onDelete,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _dark ? const Color(0xff0F1220) : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: _border),
-      ),
-      padding: const EdgeInsets.fromLTRB(18, 18, 12, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Detalhes',
-            style: TextStyle(
-              color: _textMain,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (model.isNotEmpty) ...[
-            Text(
-              'Modelo',
-              style: TextStyle(color: _textSub, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 6),
-            Text(model, style: TextStyle(color: _textMain)),
-            const SizedBox(height: 14),
-          ],
-          Text(
-            'Prompt utilizado',
-            style: TextStyle(color: _textSub, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(
-                prompt.isEmpty ? 'Indisponível' : prompt,
-                style: TextStyle(
-                  color: _textMain,
-                  height: 1.35,
-                  fontSize: 15.5,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.tonal(
-                  onPressed: onDownload,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
-                  child: const Text('Baixar'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.tonal(
-                  onPressed: onDelete,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
-                  child: const Text('Excluir'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
@@ -33,7 +32,6 @@ class SmartImage extends StatelessWidget {
         builder: (context, snap) {
           if (snap.hasError) return _error();
           if (!snap.hasData) return _loader();
-
           final r = snap.data!;
           if (r.bytes != null) {
             return Image.memory(
@@ -89,17 +87,15 @@ class SmartImage extends StatelessWidget {
   Future<_Resolved> _resolveFromStorage(String path) async {
     final ref = FirebaseStorage.instance.ref(path);
     try {
-      final data = await ref.getData(20 * 1024 * 1024);
+      final data = await ref.getData(20971520);
       if (data != null && data.isNotEmpty) {
         return _Resolved(bytes: data);
       }
     } catch (_) {}
-
     try {
       final url = await ref.getDownloadURL();
       return _Resolved(url: url);
     } catch (_) {}
-
     return _Resolved();
   }
 
@@ -121,8 +117,6 @@ class SmartImage extends StatelessWidget {
   Widget _errBuilder(BuildContext context, Object error, StackTrace? st) {
     return _error();
   }
-
-  static Future<void> download(String src, {required String filename}) async {}
 }
 
 class _Resolved {

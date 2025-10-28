@@ -54,9 +54,8 @@ class _AdminPageState extends State<AdminPage> {
 
   void _onScroll() {
     if (_loading || _nextToken == null) return;
-    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 200) {
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 200)
       _load(more: true);
-    }
   }
 
   Future<void> _load({bool more = false, bool reset = false}) async {
@@ -73,15 +72,11 @@ class _AdminPageState extends State<AdminPage> {
         pageToken: more ? _nextToken : null,
         pageSize: 20,
       );
-      final arr = (res['users'] as List<dynamic>? ?? [])
+      final arr = (res['users'] as List? ?? [])
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList();
       setState(() {
-        if (reset || !more) {
-          _users = arr;
-        } else {
-          _users.addAll(arr);
-        }
+        _users = (reset || !more) ? arr : [..._users, ...arr];
         _nextToken = res['nextPageToken'] as String?;
         _initialLoaded = true;
       });
@@ -97,10 +92,7 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
-  Future<void> _reloadAll() async {
-    await _load(reset: true);
-  }
-
+  Future<void> _reloadAll() async => _load(reset: true);
   Future<void> _toggleAdmin(String uid, bool value) async {
     await _svc.setRole(uid: uid, admin: value);
     await _reloadAll();
@@ -118,9 +110,8 @@ class _AdminPageState extends State<AdminPage> {
       final name = (u['displayName'] as String? ?? '').toLowerCase();
       final admin = u['admin'] as bool? ?? false;
       final disabled = u['disabled'] as bool? ?? false;
-      if (q.isNotEmpty && !(email.contains(q) || name.contains(q))) {
+      if (q.isNotEmpty && !(email.contains(q) || name.contains(q)))
         return false;
-      }
       if (_roleFilter == 'admin' && !admin) return false;
       if (_roleFilter == 'user' && admin) return false;
       if (_statusFilter == 'ativo' && disabled) return false;
@@ -129,8 +120,8 @@ class _AdminPageState extends State<AdminPage> {
     }).toList();
   }
 
-  ThemeData _theme(BuildContext baseCtx) {
-    final base = Theme.of(baseCtx);
+  ThemeData _theme(BuildContext ctx) {
+    final base = Theme.of(ctx);
     return base.copyWith(
       scaffoldBackgroundColor: _bg,
       appBarTheme: base.appBarTheme.copyWith(
@@ -180,6 +171,14 @@ class _AdminPageState extends State<AdminPage> {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
+    );
+  }
+
+  Widget _chip(String label, bool selected, VoidCallback onTap) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
     );
   }
 
@@ -327,51 +326,46 @@ class _AdminPageState extends State<AdminPage> {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text('Papel', style: TextStyle(color: _textSub)),
-                      ChoiceChip(
-                        label: const Text('Todos'),
-                        selected: _roleFilter == 'todos',
-                        onSelected: (_) =>
-                            setState(() => _roleFilter = 'todos'),
+                      _chip(
+                        'Todos',
+                        _roleFilter == 'todos',
+                        () => setState(() => _roleFilter = 'todos'),
                       ),
-                      ChoiceChip(
-                        label: const Text('Usuários'),
-                        selected: _roleFilter == 'user',
-                        onSelected: (_) => setState(() => _roleFilter = 'user'),
+                      _chip(
+                        'Usuários',
+                        _roleFilter == 'user',
+                        () => setState(() => _roleFilter = 'user'),
                       ),
-                      ChoiceChip(
-                        label: const Text('Admins'),
-                        selected: _roleFilter == 'admin',
-                        onSelected: (_) =>
-                            setState(() => _roleFilter = 'admin'),
+                      _chip(
+                        'Admins',
+                        _roleFilter == 'admin',
+                        () => setState(() => _roleFilter = 'admin'),
                       ),
                     ],
                   ),
                   Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text('Status', style: TextStyle(color: _textSub)),
-                      ChoiceChip(
-                        label: const Text('Todos'),
-                        selected: _statusFilter == 'todos',
-                        onSelected: (_) =>
-                            setState(() => _statusFilter = 'todos'),
+                      _chip(
+                        'Todos',
+                        _statusFilter == 'todos',
+                        () => setState(() => _statusFilter = 'todos'),
                       ),
-                      ChoiceChip(
-                        label: const Text('Ativos'),
-                        selected: _statusFilter == 'ativo',
-                        onSelected: (_) =>
-                            setState(() => _statusFilter = 'ativo'),
+                      _chip(
+                        'Ativos',
+                        _statusFilter == 'ativo',
+                        () => setState(() => _statusFilter = 'ativo'),
                       ),
-                      ChoiceChip(
-                        label: const Text('Bloqueados'),
-                        selected: _statusFilter == 'bloqueado',
-                        onSelected: (_) =>
-                            setState(() => _statusFilter = 'bloqueado'),
+                      _chip(
+                        'Bloqueados',
+                        _statusFilter == 'bloqueado',
+                        () => setState(() => _statusFilter = 'bloqueado'),
                       ),
                     ],
                   ),
@@ -386,17 +380,11 @@ class _AdminPageState extends State<AdminPage> {
             ),
             Expanded(
               child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= 820;
-                  if (_error.isNotEmpty) {
-                    return _errorView();
-                  }
-                  if (!_initialLoaded && _loading) {
-                    return _skeletonView();
-                  }
-                  if (_filtered.isEmpty) {
-                    return _emptyView();
-                  }
+                builder: (context, c) {
+                  final wide = c.maxWidth >= 820;
+                  if (_error.isNotEmpty) return _errorView();
+                  if (!_initialLoaded && _loading) return _skeletonView();
+                  if (_filtered.isEmpty) return _emptyView();
                   return wide ? _wideTable(filtered) : _compactList(filtered);
                 },
               ),
@@ -681,14 +669,14 @@ class _AdminPageState extends State<AdminPage> {
                 ],
               ),
               trailing: PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'toggle_admin') {
+                onSelected: (v) async {
+                  if (v == 'toggle_admin') {
                     await _toggleAdmin(uid, !admin);
-                  } else if (value == 'toggle_disabled') {
+                  } else if (v == 'toggle_disabled') {
                     await _toggleDisabled(uid, !disabled);
                   }
                 },
-                itemBuilder: (context) => [
+                itemBuilder: (_) => [
                   PopupMenuItem(
                     value: 'toggle_admin',
                     child: Row(

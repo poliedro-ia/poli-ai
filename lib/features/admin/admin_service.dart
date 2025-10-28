@@ -9,8 +9,7 @@ class AdminService {
     String? pageToken,
     int pageSize = 20,
   }) async {
-    final callable = _functions.httpsCallable('adminListUsers');
-    final res = await callable.call({
+    final res = await _functions.httpsCallable('adminListUsers').call({
       'pageToken': pageToken,
       'pageSize': pageSize,
     });
@@ -21,17 +20,20 @@ class AdminService {
     required String uid,
     required bool disabled,
   }) async {
-    final callable = _functions.httpsCallable('adminSetDisabled');
-    await callable.call({'uid': uid, 'disabled': disabled});
+    await _functions.httpsCallable('adminSetDisabled').call({
+      'uid': uid,
+      'disabled': disabled,
+    });
   }
 
   Future<void> setRole({required String uid, required bool admin}) async {
-    final callable = _functions.httpsCallable('adminSetRole');
-    await callable.call({'uid': uid, 'admin': admin});
+    await _functions.httpsCallable('adminSetRole').call({
+      'uid': uid,
+      'admin': admin,
+    });
   }
 
   Future<void> selfPromote() async {
-    final callable = _functions.httpsCallable('adminSelfPromote');
-    await callable.call({});
+    await _functions.httpsCallable('adminSelfPromote').call({});
   }
 }

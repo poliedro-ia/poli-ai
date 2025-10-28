@@ -22,6 +22,7 @@ class _SkeletonState extends State<Skeleton>
     vsync: this,
     duration: const Duration(milliseconds: 1100),
   )..repeat();
+
   @override
   void dispose() {
     _c.dispose();
@@ -41,10 +42,10 @@ class _SkeletonState extends State<Skeleton>
             gradient: LinearGradient(
               begin: Alignment(-1 + _c.value * 2, 0),
               end: Alignment(1 + _c.value * 2, 0),
-              colors: [
-                const Color(0xFFEDEDED),
-                const Color(0xFFDCDCDC),
-                const Color(0xFFEDEDED),
+              colors: const [
+                Color(0xFFEDEDED),
+                Color(0xFFDCDCDC),
+                Color(0xFFEDEDED),
               ],
               stops: const [0.25, 0.5, 0.75],
             ),
