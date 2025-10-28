@@ -53,26 +53,30 @@ class _HistoryPageState extends State<HistoryPage> {
         ),
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: FilledButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
-              );
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xff2563EB),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        if (kIsWeb)
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: FilledButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HomePage()),
+                );
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xff2563EB),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
+              child: Text(user != null ? 'Minha Conta' : 'Login'),
             ),
-            child: Text(user != null ? 'Minha Conta' : 'Login'),
           ),
-        ),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
@@ -129,14 +133,15 @@ class _HistoryPageState extends State<HistoryPage> {
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snap) {
-        if (snap.hasError)
+        if (snap.hasError) {
           return Center(
             child: Text(
               'Erro: ${snap.error}',
               style: TextStyle(color: p.textMain),
             ),
           );
-        if (!snap.hasData)
+        }
+        if (!snap.hasData) {
           return const Center(
             child: SizedBox(
               width: 32,
@@ -144,26 +149,29 @@ class _HistoryPageState extends State<HistoryPage> {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           );
+        }
         final docs = snap.data!.docs;
-        if (docs.isEmpty)
+        if (docs.isEmpty) {
           return Center(
             child: Text(
               'Nenhuma imagem ainda',
               style: TextStyle(color: p.textSub),
             ),
           );
+        }
         return LayoutBuilder(
           builder: (context, c) {
             final w = c.maxWidth;
             int cross = 2;
-            if (w >= 1400)
+            if (w >= 1400) {
               cross = 6;
-            else if (w >= 1200)
+            } else if (w >= 1200) {
               cross = 5;
-            else if (w >= 900)
+            } else if (w >= 900) {
               cross = 4;
-            else if (w >= 640)
+            } else if (w >= 640) {
               cross = 3;
+            }
             return GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -199,13 +207,10 @@ class _HistoryPageState extends State<HistoryPage> {
                     startIndex: i,
                     allDocs: docs,
                   ),
-                  onDownload: kIsWeb
-                      ? () => downloadImage(
-                          src,
-                          filename:
-                              'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
-                        )
-                      : null,
+                  onDownload: () => downloadImage(
+                    src,
+                    filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
+                  ),
                   onDelete: () => _confirmDelete(id, storagePath, src),
                 );
               },

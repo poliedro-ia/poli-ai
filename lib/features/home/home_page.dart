@@ -212,44 +212,46 @@ class _HomeState extends State<HomePage> {
             ),
           ),
         ),
-        StreamBuilder<User?>(
-          stream: FirebaseAuth.instance.authStateChanges(),
-          builder: (_, snap) {
-            final logged = snap.data != null;
-            return Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: FilledButton(
-                onPressed: () {
-                  if (logged) {
-                    setState(() => _currentIndex = 1);
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => Login(
-                          darkInitial: ThemeController.instance.isDark.value,
+        if (kIsWeb)
+          StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (_, snap) {
+              final logged = snap.data != null;
+              return Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: FilledButton(
+                  onPressed: () {
+                    if (logged) {
+                      setState(() => _currentIndex = 1);
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => Login(
+                            darkInitial: ThemeController.instance.isDark.value,
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: p.cta,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 22,
-                    vertical: 12,
+                      );
+                    }
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: p.cta,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  child: Text(logged ? 'Minha Conta' : 'Login'),
                 ),
-                child: Text(logged ? 'Minha Conta' : 'Login'),
-              ),
-            );
-          },
-        ),
+              );
+            },
+          ),
       ],
+
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
         child: Container(height: 1, color: p.border.withOpacity(0.7)),
