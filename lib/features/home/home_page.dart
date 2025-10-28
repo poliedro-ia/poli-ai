@@ -8,6 +8,7 @@ import 'package:app/features/auth/pages/login_page.dart';
 import 'package:app/features/history/history_page.dart';
 import 'package:app/features/home/ui/home_ui.dart';
 import 'package:app/features/home/widgets/generator_panel.dart';
+import 'package:app/features/home/widgets/image_zoom_dialog.dart';
 import 'package:app/features/home/widgets/result_panel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -678,122 +679,18 @@ class _HomeState extends State<HomePage> {
     final src = _previewUrl;
     if (src == null) return;
 
-    if (kIsWeb) {
-      showDialog(
-        context: context,
-        barrierColor: Colors.black.withOpacity(0.75),
-        builder: (_) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: p.layer,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: p.border),
-            ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: InteractiveViewer(
-                    minScale: 0.5,
-                    maxScale: 4,
-                    child: Image.network(src, fit: BoxFit.contain),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    FilledButton.tonal(
-                      onPressed: () => downloadImage(
-                        src,
-                        filename:
-                            'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
-                      ),
-                      child: const Text('Baixar'),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Fechar'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-      return;
-    }
-
-    showDialog(
+    showImageZoomDialog(
       context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.75),
-      builder: (_) {
-        final size = MediaQuery.of(context).size;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(12),
-          child: SafeArea(
-            top: false,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: size.height - 24,
-                maxWidth: size.width - 24,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: p.layer,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: p.border),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: InteractiveViewer(
-                          minScale: 0.5,
-                          maxScale: 4,
-                          child: Center(child: Image.network(src)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton.tonal(
-                            onPressed: () => downloadImage(
-                              src,
-                              filename:
-                                  'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
-                            ),
-                            child: const Text('Baixar'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Fechar'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
+      url: src,
+      palette: ZoomPalette(
+        layer: p.layer,
+        border: p.border,
+        subText: p.subText,
+      ),
+      onDownload: () => downloadImage(
+        src,
+        filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+      ),
     );
   }
 
