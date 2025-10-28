@@ -5,6 +5,7 @@ import 'package:app/core/utils/media_utils.dart';
 import 'package:app/features/account/edit_name_dialog.dart';
 import 'package:app/features/admin/admin_page.dart';
 import 'package:app/features/auth/pages/login_page.dart';
+import 'package:app/features/history/history_page.dart';
 import 'package:app/features/home/ui/home_ui.dart';
 import 'package:app/features/home/widgets/generator_panel.dart';
 import 'package:app/features/home/widgets/result_panel.dart';
@@ -531,13 +532,24 @@ class _HomeState extends State<HomePage> {
                           childAspectRatio: wide ? 3.8 : 3.2,
                         ),
                         children: [
-                          _accountItem(p, Icons.image, 'Ver histórico salvo', () {
-                            // vai para a HistoryPage padrão que você já tem
-                            Navigator.pushNamed(
-                              context,
-                              '/history',
-                            ); // opcional: ou MaterialPageRoute para HistoryPage
-                          }),
+                          _accountItem(
+                            p,
+                            Icons.image,
+                            'Ver histórico salvo',
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      HistoryPage(darkInitial: p.dark),
+                                  settings: const RouteSettings(
+                                    name: '/history',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+
                           _accountItem(
                             p,
                             Icons.edit,

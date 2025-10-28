@@ -1,4 +1,6 @@
+import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/utils/media_utils.dart';
+import 'package:app/features/home/home_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -9,6 +11,7 @@ import 'package:app/features/history/widgets/history_card.dart';
 import 'package:app/features/history/widgets/viewer_dialog.dart';
 
 class HistoryPage extends StatefulWidget {
+  static const route = '/history';
   final bool? darkInitial;
   const HistoryPage({super.key, this.darkInitial});
   @override
@@ -24,17 +27,67 @@ class _HistoryPageState extends State<HistoryPage> {
     _dark = widget.darkInitial ?? true;
   }
 
+  PreferredSizeWidget _appBar(HistoryPalette p) {
+    final user = FirebaseAuth.instance.currentUser;
+    return AppBar(
+      automaticallyImplyLeading: false,
+      backgroundColor: p.bg,
+      foregroundColor: p.textMain,
+      elevation: 0,
+      toolbarHeight: 76,
+      titleSpacing: 0,
+      title: Padding(
+        padding: const EdgeInsets.only(left: 20),
+        child: GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HomePage()),
+            );
+          },
+          child: Image.asset(
+            _dark ? Images.whiteLogo : Images.logo,
+            height: 100,
+            width: 100,
+          ),
+        ),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: FilledButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HomePage()),
+              );
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xff2563EB),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(user != null ? 'Minha Conta' : 'Login'),
+          ),
+        ),
+      ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(height: 1, color: p.textSub.withOpacity(0.25)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final u = FirebaseAuth.instance.currentUser;
     final p = HistoryPalette(_dark);
     return Scaffold(
       backgroundColor: p.bg,
-      appBar: historyAppBar(
-        context: context,
-        palette: p,
-        onToggleTheme: () => setState(() => _dark = !_dark),
-      ),
+      appBar: _appBar(p),
       body: u == null ? _requireLogin(p) : _gridFor(p, u.uid),
     );
   }
@@ -76,15 +129,14 @@ class _HistoryPageState extends State<HistoryPage> {
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snap) {
-        if (snap.hasError) {
+        if (snap.hasError)
           return Center(
             child: Text(
               'Erro: ${snap.error}',
               style: TextStyle(color: p.textMain),
             ),
           );
-        }
-        if (!snap.hasData) {
+        if (!snap.hasData)
           return const Center(
             child: SizedBox(
               width: 32,
@@ -92,29 +144,26 @@ class _HistoryPageState extends State<HistoryPage> {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           );
-        }
         final docs = snap.data!.docs;
-        if (docs.isEmpty) {
+        if (docs.isEmpty)
           return Center(
             child: Text(
               'Nenhuma imagem ainda',
               style: TextStyle(color: p.textSub),
             ),
           );
-        }
         return LayoutBuilder(
           builder: (context, c) {
             final w = c.maxWidth;
             int cross = 2;
-            if (w >= 1400) {
+            if (w >= 1400)
               cross = 6;
-            } else if (w >= 1200) {
+            else if (w >= 1200)
               cross = 5;
-            } else if (w >= 900) {
+            else if (w >= 900)
               cross = 4;
-            } else if (w >= 640) {
+            else if (w >= 640)
               cross = 3;
-            }
             return GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -137,7 +186,6 @@ class _HistoryPageState extends State<HistoryPage> {
                     (d['promptUsado'] as String? ?? '');
                 final model = (d['model'] as String?) ?? '';
                 final storagePath = d['storagePath'] as String?;
-
                 return HistoryImageCard(
                   palette: p,
                   src: src,
@@ -155,7 +203,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       ? () => downloadImage(
                           src,
                           filename:
-                              'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+                              'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
                         )
                       : null,
                   onDelete: () => _confirmDelete(id, storagePath, src),
@@ -190,7 +238,7 @@ class _HistoryPageState extends State<HistoryPage> {
       allDocs: allDocs,
       onDownload: () => downloadImage(
         src,
-        filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+        filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
       ),
       onDelete: () {
         Navigator.pop(context);

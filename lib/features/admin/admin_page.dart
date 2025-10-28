@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/features/admin/admin_service.dart';
 import 'package:app/features/home/home_page.dart';
-import 'package:app/features/history/history_page.dart';
 
 class AdminPage extends StatefulWidget {
   final bool darkInitial;
@@ -183,16 +182,21 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   PreferredSizeWidget _appBar() {
+    final user = FirebaseAuth.instance.currentUser;
     return AppBar(
       automaticallyImplyLeading: false,
       titleSpacing: 0,
+      backgroundColor: _barBg,
+      foregroundColor: _textMain,
+      elevation: 0,
+      toolbarHeight: 76,
       title: Padding(
         padding: const EdgeInsets.only(left: 20),
         child: GestureDetector(
           onTap: () {
-            Navigator.of(context).pushAndRemoveUntil(
+            Navigator.push(
+              context,
               MaterialPageRoute(builder: (_) => const HomePage()),
-              (route) => false,
             );
           },
           child: Image.asset(
@@ -203,74 +207,29 @@ class _AdminPageState extends State<AdminPage> {
         ),
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 6),
-          child: IconButton(
-            tooltip: _dark ? 'Tema claro' : 'Tema escuro',
-            onPressed: () => setState(() => _dark = !_dark),
-            icon: Icon(
-              _dark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
-            ),
-            color: _textMain,
-            style: IconButton.styleFrom(
-              padding: const EdgeInsets.all(10),
-              backgroundColor: _dark
-                  ? const Color(0x221E2A4A)
-                  : const Color(0x22E9EEF9),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: FilledButton.tonal(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HistoryPage()),
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: _dark
-                  ? const Color(0xff1E2A4A)
-                  : const Color(0xffE9EEF9),
-              foregroundColor: _textMain,
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Histórico'),
-          ),
-        ),
         if (kIsWeb)
-          StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (_, snap) {
-              final logged = snap.data != null;
-              return Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const HomePage()),
-                      (route) => false,
-                    );
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _cta,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(logged ? 'Minha Conta' : 'Login'),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: FilledButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HomePage()),
+                );
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: _cta,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 12,
                 ),
-              );
-            },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(user != null ? 'Minha Conta' : 'Login'),
+            ),
           ),
       ],
       bottom: PreferredSize(
@@ -617,7 +576,6 @@ class _AdminPageState extends State<AdminPage> {
           final disabled = u['disabled'] as bool? ?? false;
           final admin = u['admin'] as bool? ?? false;
           final verified = u['emailVerified'] as bool? ?? false;
-
           return Card(
             elevation: 0,
             color: _layer,
@@ -635,9 +593,9 @@ class _AdminPageState extends State<AdminPage> {
                 radius: 18,
                 backgroundColor: _cta.withOpacity(0.18),
                 child: Text(
-                  (name.isNotEmpty
+                  ((name.isNotEmpty
                           ? name[0]
-                          : (email.isNotEmpty ? email[0] : '?'))
+                          : (email.isNotEmpty ? email[0] : '?')))
                       .toUpperCase(),
                   style: TextStyle(color: _textMain),
                 ),
