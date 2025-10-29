@@ -207,13 +207,10 @@ class _HistoryPageState extends State<HistoryPage> {
                     startIndex: i,
                     allDocs: docs,
                   ),
-                  onDownload: kIsWeb
-                      ? () => downloadImage(
-                          src,
-                          filename:
-                              'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
-                        )
-                      : null,
+                  onDownload: () => downloadImage(
+                    src,
+                    filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
+                  ),
                   onDelete: () => _confirmDelete(id, storagePath, src),
                 );
               },
