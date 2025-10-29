@@ -5,11 +5,11 @@ class ThemeController {
   ThemeController._();
   static final ThemeController instance = ThemeController._();
 
-  final ValueNotifier<bool> isDark = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> isDark = ValueNotifier<bool>(false);
 
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
-    isDark.value = p.getBool('isDark') ?? true;
+    isDark.value = p.getBool('isDark') ?? false; 
   }
 
   Future<void> setDark(bool v) async {

@@ -30,7 +30,10 @@ Future<void> _init() async {
 }
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await _init();
+  await ThemeController.instance
+      .load();
   runApp(const App());
 }
 
