@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/configs/theme/theme_controller.dart';
+import 'package:app/core/ui/anim/anim_utils.dart';
 import 'package:app/core/utils/media_utils.dart';
 import 'package:app/features/account/edit_name_dialog.dart';
 import 'package:app/features/admin/admin_page.dart';
@@ -8,7 +9,6 @@ import 'package:app/features/auth/pages/login_page.dart';
 import 'package:app/features/history/history_page.dart';
 import 'package:app/features/home/ui/home_ui.dart';
 import 'package:app/features/home/widgets/generator_panel.dart';
-import 'package:app/features/home/widgets/image_zoom_dialog.dart';
 import 'package:app/features/home/widgets/result_panel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -34,7 +34,7 @@ class _HomeState extends State<HomePage> {
   String _aspect = '16:9';
   bool _didatico = true;
   bool _loading = false;
-  String? _previewUrl; // (URL salvo) – mantemos único para simplificar
+  String? _previewUrl;
   int _currentIndex = 0;
   bool _isAdmin = false;
 
@@ -61,7 +61,6 @@ class _HomeState extends State<HomePage> {
       return ['Eletricidade', 'Mecânica', 'Óptica', 'Termodinâmica'];
     }
     return ['Ligações', 'Reações', 'Estrutura', 'Estequiometria'];
-    // mantém mapeamento original
   }
 
   Future<void> _generate() async {
@@ -113,7 +112,6 @@ class _HomeState extends State<HomePage> {
         return;
       }
 
-      // salva no Storage e em Firestore (igual comportamento anterior)
       final mime = dataUrl.substring(5, dataUrl.indexOf(';'));
       final ext = mime.split('/').last;
       final b64 = dataUrl.split(',').last;
@@ -160,6 +158,7 @@ class _HomeState extends State<HomePage> {
   }
 
   PreferredSizeWidget _appBar(HomePalette p) {
+    final user = FirebaseAuth.instance.currentUser;
     return AppBar(
       backgroundColor: p.barBg,
       elevation: 0,
@@ -212,46 +211,35 @@ class _HomeState extends State<HomePage> {
             ),
           ),
         ),
-        if (kIsWeb)
-          StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (_, snap) {
-              final logged = snap.data != null;
-              return Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: FilledButton(
-                  onPressed: () {
-                    if (logged) {
-                      setState(() => _currentIndex = 1);
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => Login(
-                            darkInitial: ThemeController.instance.isDark.value,
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: p.cta,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: FilledButton(
+            onPressed: () {
+              if (user != null) {
+                setState(() => _currentIndex = 1);
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => Login(
+                      darkInitial: ThemeController.instance.isDark.value,
                     ),
                   ),
-                  child: Text(logged ? 'Minha Conta' : 'Login'),
-                ),
-              );
+                );
+              }
             },
+            style: FilledButton.styleFrom(
+              backgroundColor: p.cta,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(user != null ? 'Minha Conta' : 'Login'),
           ),
+        ),
       ],
-
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
         child: Container(height: 1, color: p.border.withOpacity(0.7)),
@@ -263,39 +251,45 @@ class _HomeState extends State<HomePage> {
     final w = MediaQuery.of(context).size.width;
     final isWide = w >= 960;
 
-    final left = GeneratorPanel(
-      p: p,
-      tema: _tema,
-      subarea: _sub,
-      estilo: _estilo,
-      aspect: _aspect,
-      didatico: _didatico,
-      temaOptions: const ['Física', 'Química'],
-      subareaOptions: _subareasFor(_tema),
-      estiloOptions: const ['Vetorial', 'Realista', 'Desenho'],
-      aspectOptions: const ['1:1', '3:2', '4:3', '16:9', '9:16'],
-      onTema: (v) {
-        final subs = _subareasFor(v);
-        setState(() {
-          _tema = v;
-          if (!subs.contains(_sub)) _sub = subs.first;
-        });
-      },
-      onSubarea: (v) => setState(() => _sub = v),
-      onEstilo: (v) => setState(() => _estilo = v),
-      onAspect: (v) => setState(() => _aspect = v),
-      onDidatico: (v) => setState(() => _didatico = v),
-      prompt: _prompt,
-      loading: _loading,
-      onGenerate: _generate,
+    final left = FadeSlide(
+      delay: const Duration(milliseconds: 100),
+      child: GeneratorPanel(
+        p: p,
+        tema: _tema,
+        subarea: _sub,
+        estilo: _estilo,
+        aspect: _aspect,
+        didatico: _didatico,
+        temaOptions: const ['Física', 'Química'],
+        subareaOptions: _subareasFor(_tema),
+        estiloOptions: const ['Vetorial', 'Realista', 'Desenho'],
+        aspectOptions: const ['1:1', '3:2', '4:3', '16:9', '9:16'],
+        onTema: (v) {
+          final subs = _subareasFor(v);
+          setState(() {
+            _tema = v;
+            if (!subs.contains(_sub)) _sub = subs.first;
+          });
+        },
+        onSubarea: (v) => setState(() => _sub = v),
+        onEstilo: (v) => setState(() => _estilo = v),
+        onAspect: (v) => setState(() => _aspect = v),
+        onDidatico: (v) => setState(() => _didatico = v),
+        prompt: _prompt,
+        loading: _loading,
+        onGenerate: _generate,
+      ),
     );
 
-    final right = ResultPanel(
-      p: p,
-      previewDataUrlOrUrl: _previewUrl,
-      aspect: _aspect,
-      onZoom: () => _zoom(context, p),
-      canDownload: _previewUrl != null,
+    final right = FadeSlide(
+      delay: const Duration(milliseconds: 160),
+      child: ResultPanel(
+        p: p,
+        previewDataUrlOrUrl: _previewUrl,
+        aspect: _aspect,
+        onZoom: () => _zoom(context, p),
+        canDownload: _previewUrl != null,
+      ),
     );
 
     final heroTopPad = kIsWeb ? 64.0 : 40.0;
@@ -324,25 +318,32 @@ class _HomeState extends State<HomePage> {
                   constraints: const BoxConstraints(maxWidth: 1200),
                   child: Column(
                     children: [
-                      Text(
-                        'Onde Ideias Viram\nImagens Educacionais',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: p.text,
-                          fontSize: heroTitleSize,
-                          fontWeight: FontWeight.w900,
-                          height: 1.1,
-                          letterSpacing: -0.8,
+                      FadeSlide(
+                        delay: const Duration(milliseconds: 80),
+                        child: Text(
+                          'Onde Ideias Viram\nImagens Educacionais',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: p.text,
+                            fontSize: heroTitleSize,
+                            fontWeight: FontWeight.w900,
+                            height: 1.1,
+                            letterSpacing: -0.8,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        'Gere ilustrações educativas com aparência profissional para Física e Química. Simples, rápido e preciso.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: p.subText,
-                          fontSize: 16,
-                          height: 1.5,
+                      FadeSlide(
+                        delay: const Duration(milliseconds: 160),
+                        beginOffset: const Offset(0, .04),
+                        child: Text(
+                          'Gere ilustrações educativas com aparência profissional para Física e Química. Simples, rápido e preciso.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: p.subText,
+                            fontSize: 16,
+                            height: 1.5,
+                          ),
                         ),
                       ),
                     ],
@@ -497,45 +498,46 @@ class _HomeState extends State<HomePage> {
               child: Column(
                 children: [
                   const SizedBox(height: 8),
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: p.cta,
-                    child: const Icon(
-                      Icons.person,
-                      size: 60,
-                      color: Colors.white,
+                  ScaleIn(
+                    delay: const Duration(milliseconds: 60),
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: p.cta,
+                      child: const Icon(
+                        Icons.person,
+                        size: 60,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    u?.displayName ?? 'Usuário',
-                    style: TextStyle(
-                      color: p.text,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
+                  FadeSlide(
+                    delay: const Duration(milliseconds: 120),
+                    child: Text(
+                      u?.displayName ?? 'Usuário',
+                      style: TextStyle(
+                        color: p.text,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    u?.email ?? '',
-                    style: TextStyle(color: p.subText, fontSize: 16),
+                  FadeSlide(
+                    delay: const Duration(milliseconds: 160),
+                    child: Text(
+                      u?.email ?? '',
+                      style: TextStyle(color: p.subText, fontSize: 16),
+                    ),
                   ),
                   const SizedBox(height: 28),
                   LayoutBuilder(
                     builder: (_, c) {
                       final wide = c.maxWidth >= 720;
                       final cross = wide ? 2 : 1;
-                      return GridView(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: cross,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: wide ? 3.8 : 3.2,
-                        ),
-                        children: [
-                          _accountItem(
+                      final items = [
+                        ScaleOnTap(
+                          child: _accountItem(
                             p,
                             Icons.image,
                             'Ver histórico salvo',
@@ -552,8 +554,9 @@ class _HomeState extends State<HomePage> {
                               );
                             },
                           ),
-
-                          _accountItem(
+                        ),
+                        ScaleOnTap(
+                          child: _accountItem(
                             p,
                             Icons.edit,
                             'Editar nome de usuário',
@@ -581,20 +584,26 @@ class _HomeState extends State<HomePage> {
                               }
                             },
                           ),
-                          _accountItem(
+                        ),
+                        ScaleOnTap(
+                          child: _accountItem(
                             p,
                             Icons.mark_email_unread_outlined,
                             'Enviar e-mail de verificação',
                             _sendVerification,
                           ),
-                          _accountItem(
+                        ),
+                        ScaleOnTap(
+                          child: _accountItem(
                             p,
                             Icons.lock_reset,
                             'Redefinir senha',
                             _sendReset,
                           ),
-                          if (_isAdmin)
-                            _accountItem(
+                        ),
+                        if (_isAdmin)
+                          ScaleOnTap(
+                            child: _accountItem(
                               p,
                               Icons.admin_panel_settings,
                               'Área do Administrador',
@@ -606,18 +615,43 @@ class _HomeState extends State<HomePage> {
                                 ),
                               ),
                             ),
-                          _accountItem(p, Icons.logout, 'Sair', () async {
-                            await FirebaseAuth.instance.signOut();
-                            if (!mounted) return;
-                            setState(() => _currentIndex = 0);
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (_) => const HomePage(),
-                              ),
-                              (route) => false,
-                            );
-                          }, color: Colors.redAccent),
-                        ],
+                          ),
+                        ScaleOnTap(
+                          child: _accountItem(
+                            p,
+                            Icons.logout,
+                            'Sair',
+                            () async {
+                              await FirebaseAuth.instance.signOut();
+                              if (!mounted) return;
+                              setState(() => _currentIndex = 0);
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (_) => const HomePage(),
+                                ),
+                                (route) => false,
+                              );
+                            },
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ];
+                      return GridView(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: cross,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: wide ? 3.8 : 3.2,
+                        ),
+                        children: List.generate(
+                          items.length,
+                          (i) => FadeSlide(
+                            delay: Duration(milliseconds: 60 * i),
+                            child: items[i],
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -681,18 +715,122 @@ class _HomeState extends State<HomePage> {
     final src = _previewUrl;
     if (src == null) return;
 
-    showImageZoomDialog(
+    if (kIsWeb) {
+      showDialog(
+        context: context,
+        barrierColor: Colors.black.withOpacity(0.75),
+        builder: (_) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: p.layer,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: p.border),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4,
+                    child: Image.network(src, fit: BoxFit.contain),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    FilledButton.tonal(
+                      onPressed: () => downloadImage(
+                        src,
+                        filename:
+                            'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
+                      ),
+                      child: const Text('Baixar'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Fechar'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    showDialog(
       context: context,
-      url: src,
-      palette: ZoomPalette(
-        layer: p.layer,
-        border: p.border,
-        subText: p.subText,
-      ),
-      onDownload: () => downloadImage(
-        src,
-        filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
-      ),
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.75),
+      builder: (_) {
+        final size = MediaQuery.of(context).size;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(12),
+          child: SafeArea(
+            top: false,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: size.height - 24,
+                maxWidth: size.width - 24,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: p.layer,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: p.border),
+                ),
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: InteractiveViewer(
+                          minScale: 0.5,
+                          maxScale: 4,
+                          child: Center(child: Image.network(src)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.tonal(
+                            onPressed: () => downloadImage(
+                              src,
+                              filename:
+                                  'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
+                            ),
+                            child: const Text('Baixar'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Fechar'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
