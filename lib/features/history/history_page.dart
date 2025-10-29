@@ -4,7 +4,6 @@ import 'package:app/features/home/home_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:app/features/history/ui/history_ui.dart';
 import 'package:app/features/history/widgets/history_card.dart';
@@ -97,7 +96,7 @@ class _HistoryPageState extends State<HistoryPage> {
         backgroundColor: p.bg,
         appBar: _appBar(p),
         body: Switcher(
-          child: u == null ? _requireLogin(p) : _gridFor(p, u.uid),
+          child: u == null ? _requireLogin(p) : _groupedGrid(p, u.uid),
         ),
       ),
     );
@@ -134,7 +133,8 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _gridFor(HistoryPalette p, String uid) {
+  /// ---------- NOVO: grade agrupada por disciplina ----------
+  Widget _groupedGrid(HistoryPalette p, String uid) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
           .collection('users')
@@ -160,6 +160,7 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
           );
         }
+
         final docs = snap.data!.docs;
         if (docs.isEmpty) {
           return Center(
@@ -169,70 +170,109 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
           );
         }
-        return LayoutBuilder(
-          builder: (context, c) {
-            final w = c.maxWidth;
-            int cross = 2;
-            if (w >= 1400)
-              cross = 6;
-            else if (w >= 1200)
-              cross = 5;
-            else if (w >= 900)
-              cross = 4;
-            else if (w >= 640)
-              cross = 3;
-            return GridView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cross,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1,
+
+        // Agrupa por disciplina / assunto
+        final Map<String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+        groups = {};
+        for (final d in docs) {
+          final m = d.data();
+          final tema =
+              (m['temaResolvido'] ??
+                      m['temaSelecionado'] ??
+                      m['tema'] ??
+                      'Geral')
+                  as String;
+          final title = _titleCase(tema);
+          groups.putIfAbsent(title, () => []).add(d);
+        }
+
+        final sortedKeys = groups.keys.toList()..sort();
+
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+          itemCount: sortedKeys.length,
+          itemBuilder: (_, gi) {
+            final key = sortedKeys[gi];
+            final list = groups[key]!;
+            return _Section(
+              title: key,
+              palette: p,
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final w = c.maxWidth;
+                  int cross = 2;
+                  if (w >= 1400)
+                    cross = 6;
+                  else if (w >= 1200)
+                    cross = 5;
+                  else if (w >= 900)
+                    cross = 4;
+                  else if (w >= 640)
+                    cross = 3;
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: cross,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1,
+                    ),
+                    itemCount: list.length,
+                    itemBuilder: (_, i) {
+                      final doc = list[i];
+                      final d = doc.data();
+                      final id = doc.id;
+                      final src =
+                          (d['downloadUrl'] as String?) ??
+                          (d['storagePath'] as String?) ??
+                          (d['src'] as String? ?? '');
+                      final prompt =
+                          (d['prompt'] as String?) ??
+                          (d['promptUsado'] as String? ?? '');
+                      final model = (d['model'] as String?) ?? '';
+                      final storagePath = d['storagePath'] as String?;
+
+                      return Entry(
+                        delay: Duration(milliseconds: 40 + (i % cross) * 70),
+                        dy: 10,
+                        child: HistoryImageCard(
+                          palette: p,
+                          src: src,
+                          onTap: () => _openViewer(
+                            palette: p,
+                            docId: id,
+                            storagePath: storagePath,
+                            src: src,
+                            prompt: prompt,
+                            model: model,
+                            startIndex: i,
+                            allDocs:
+                                list, // navegação por setas dentro do grupo
+                          ),
+                          onDownload: () => downloadImage(
+                            src,
+                            filename:
+                                'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
+                          ),
+                          onDelete: () => _confirmDelete(id, storagePath, src),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
-              itemCount: docs.length,
-              itemBuilder: (_, i) {
-                final doc = docs[i];
-                final d = doc.data();
-                final id = doc.id;
-                final src =
-                    (d['downloadUrl'] as String?) ??
-                    (d['storagePath'] as String?) ??
-                    (d['src'] as String? ?? '');
-                final prompt =
-                    (d['prompt'] as String?) ??
-                    (d['promptUsado'] as String? ?? '');
-                final model = (d['model'] as String?) ?? '';
-                final storagePath = d['storagePath'] as String?;
-                return Entry(
-                  delay: Duration(milliseconds: 40 + (i % cross) * 70),
-                  dy: 10,
-                  child: HistoryImageCard(
-                    palette: p,
-                    src: src,
-                    onTap: () => _openViewer(
-                      palette: p,
-                      docId: id,
-                      storagePath: storagePath,
-                      src: src,
-                      prompt: prompt,
-                      model: model,
-                      startIndex: i,
-                      allDocs: docs,
-                    ),
-                    onDownload: () => downloadImage(
-                      src,
-                      filename:
-                          'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
-                    ),
-                    onDelete: () => _confirmDelete(id, storagePath, src),
-                  ),
-                );
-              },
             );
           },
         );
       },
     );
+  }
+
+  String _titleCase(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1);
   }
 
   void _openViewer({
@@ -323,5 +363,181 @@ class _HistoryPageState extends State<HistoryPage> {
         await FirebaseStorage.instance.refFromURL(downloadUrl!).delete();
       }
     } catch (_) {}
+  }
+}
+
+class _SectionStyle {
+  final List<Color> gradient;
+  final IconData icon;
+  const _SectionStyle(this.gradient, this.icon);
+}
+
+_SectionStyle _sectionStyleFor(String title, HistoryPalette p) {
+  final t = title.toLowerCase();
+
+  if (t.contains('fís') || t.contains('fis')) {
+    return _SectionStyle([
+      const Color(0xFF7C3AED), // purple-600
+      const Color(0xFF2563EB), // blue-600
+    ], Icons.bolt_rounded);
+  }
+  if (t.contains('quím') || t.contains('quim')) {
+    return _SectionStyle([
+      const Color(0xFF14B8A6), // teal-500
+      const Color(0xFF22C55E), // green-500
+    ], Icons.science_rounded);
+  }
+
+  // Default “tech”
+  return _SectionStyle([
+    const Color(0xFF6366F1), // indigo-500
+    const Color(0xFF06B6D4), // cyan-500
+  ], Icons.grid_view_rounded);
+}
+
+class _Section extends StatefulWidget {
+  final String title;
+  final HistoryPalette palette;
+  final Widget child;
+
+  const _Section({
+    required this.title,
+    required this.palette,
+    required this.child,
+  });
+
+  @override
+  State<_Section> createState() => _SectionState();
+}
+
+class _SectionState extends State<_Section>
+    with SingleTickerProviderStateMixin {
+  bool _open = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.palette;
+    final s = _sectionStyleFor(widget.title, p);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 22),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: p.layer,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: p.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(p.dark ? 0.35 : 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // HEADER
+            InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => setState(() => _open = !_open),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+                child: Row(
+                  children: [
+                    // Ícone em pill com gradiente
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: s.gradient,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(s.icon, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    // Título com tipografia “tech”
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: p.textMain,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Linha sutil decorativa (vibe “tecnológica”)
+                          Container(
+                            height: 3,
+                            width: 80,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: s.gradient
+                                    .map((c) => c.withOpacity(.9))
+                                    .toList(),
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Botão colapsar com glass
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: p.dark
+                            ? const Color(0x22151827)
+                            : const Color(0x22FFFFFF),
+                        border: Border.all(color: p.border),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: AnimatedRotation(
+                          turns: _open ? 0.0 : -0.25,
+                          duration: const Duration(milliseconds: 220),
+                          child: Icon(
+                            Icons.expand_more_rounded,
+                            color: p.textMain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // CONTEÚDO
+            AnimatedCrossFade(
+              firstCurve: Curves.easeOutCubic,
+              secondCurve: Curves.easeOutCubic,
+              duration: const Duration(milliseconds: 260),
+              crossFadeState: _open
+                  ? CrossFadeState.showFirst
+                  : CrossFadeState.showSecond,
+              firstChild: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
+                child: widget.child,
+              ),
+              secondChild: const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

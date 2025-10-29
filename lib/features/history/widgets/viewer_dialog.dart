@@ -61,8 +61,7 @@ void showHistoryViewer({
             final curSrc = src0(current);
             final curPrompt = prompt0(current);
             final curModel = model0(current);
-            final curId = allDocs[current].id;
-            final curStorage = storage(current);
+            storage(current);
 
             return Dialog(
               backgroundColor: Colors.transparent,
@@ -75,7 +74,7 @@ void showHistoryViewer({
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: palette.border),
                     ),
-                    padding: const EdgeInsets.fromLTRB(56, 32, 56, 12),
+                    padding: const EdgeInsets.fromLTRB(56, 32, 84, 16),
                     child: Row(
                       children: [
                         Expanded(
