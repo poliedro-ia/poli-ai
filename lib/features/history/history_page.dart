@@ -55,17 +55,6 @@ class _HistoryPageState extends State<HistoryPage> {
         ),
       ),
       actions: [
-<<<<<<< Updated upstream
-        if (kIsWeb)
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: FilledButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const HomePage()),
-                );
-=======
         Padding(
           padding: const EdgeInsets.only(right: 16),
           child: Entry(
@@ -74,7 +63,6 @@ class _HistoryPageState extends State<HistoryPage> {
             child: FilledButton(
               onPressed: () {
                 Navigator.push(context, slideUpRoute(const HomePage()));
->>>>>>> Stashed changes
               },
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xff2563EB),
@@ -90,6 +78,7 @@ class _HistoryPageState extends State<HistoryPage> {
               child: Text(user != null ? 'Minha Conta' : 'Login'),
             ),
           ),
+        ),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
@@ -184,15 +173,14 @@ class _HistoryPageState extends State<HistoryPage> {
           builder: (context, c) {
             final w = c.maxWidth;
             int cross = 2;
-            if (w >= 1400) {
+            if (w >= 1400)
               cross = 6;
-            } else if (w >= 1200) {
+            else if (w >= 1200)
               cross = 5;
-            } else if (w >= 900) {
+            else if (w >= 900)
               cross = 4;
-            } else if (w >= 640) {
+            else if (w >= 640)
               cross = 3;
-            }
             return GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -231,23 +219,13 @@ class _HistoryPageState extends State<HistoryPage> {
                       startIndex: i,
                       allDocs: docs,
                     ),
-                    onDownload: kIsWeb
-                        ? () => downloadImage(
-                            src,
-                            filename:
-                                'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
-                          )
-                        : null,
+                    onDownload: () => downloadImage(
+                      src,
+                      filename:
+                          'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
+                    ),
                     onDelete: () => _confirmDelete(id, storagePath, src),
                   ),
-<<<<<<< Updated upstream
-                  onDownload: () => downloadImage(
-                    src,
-                    filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
-                  ),
-                  onDelete: () => _confirmDelete(id, storagePath, src),
-=======
->>>>>>> Stashed changes
                 );
               },
             );
@@ -275,8 +253,6 @@ class _HistoryPageState extends State<HistoryPage> {
       src: src,
       prompt: prompt,
       model: model,
-      startIndex: startIndex,
-      allDocs: allDocs,
       onDownload: () => downloadImage(
         src,
         filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
@@ -285,6 +261,8 @@ class _HistoryPageState extends State<HistoryPage> {
         Navigator.pop(context);
         _confirmDelete(docId, storagePath, src);
       },
+      startIndex: startIndex,
+      allDocs: allDocs,
     );
   }
 

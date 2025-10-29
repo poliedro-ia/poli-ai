@@ -217,15 +217,6 @@ class _HomeState extends State<HomePage> {
             ),
           ),
         ),
-<<<<<<< Updated upstream
-        if (kIsWeb)
-          StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (_, snap) {
-              final logged = snap.data != null;
-              return Padding(
-                padding: const EdgeInsets.only(right: 16),
-=======
         StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (_, snap) {
@@ -235,7 +226,6 @@ class _HomeState extends State<HomePage> {
               child: Entry(
                 delay: const Duration(milliseconds: 180),
                 dy: -8,
->>>>>>> Stashed changes
                 child: FilledButton(
                   onPressed: () {
                     if (logged) {
@@ -243,13 +233,8 @@ class _HomeState extends State<HomePage> {
                     } else {
                       Navigator.push(
                         context,
-<<<<<<< Updated upstream
-                        MaterialPageRoute(
-                          builder: (_) => Login(
-=======
                         slideUpRoute(
                           Login(
->>>>>>> Stashed changes
                             darkInitial: ThemeController.instance.isDark.value,
                           ),
                         ),
@@ -269,18 +254,11 @@ class _HomeState extends State<HomePage> {
                   ),
                   child: Text(logged ? 'Minha Conta' : 'Login'),
                 ),
-<<<<<<< Updated upstream
-              );
-            },
-          ),
-=======
               ),
             );
           },
         ),
->>>>>>> Stashed changes
       ],
-
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
         child: Container(height: 1, color: p.border.withOpacity(0.7)),
@@ -774,7 +752,6 @@ class _HomeState extends State<HomePage> {
     final src = _previewUrl;
     if (src == null) return;
 
-<<<<<<< Updated upstream
     showImageZoomDialog(
       context: context,
       url: src,
@@ -787,142 +764,6 @@ class _HomeState extends State<HomePage> {
         src,
         filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
       ),
-=======
-    if (kIsWeb) {
-      final size = MediaQuery.of(context).size;
-
-      showDialog(
-        context: context,
-        barrierColor: Colors.black.withOpacity(0.75),
-        builder: (_) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(16),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: size.width - 32,
-              maxHeight: size.height - 32,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: p.layer,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: p.border),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  Expanded(
-                    // <-- impede overflow vertical
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: InteractiveViewer(
-                        minScale: 0.5,
-                        maxScale: 4,
-                        child: Center(
-                          child: Image.network(
-                            src,
-                            fit: BoxFit.contain, // <-- contém dentro do espaço
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      FilledButton.tonal(
-                        onPressed: () => downloadImage(
-                          src,
-                          filename:
-                              'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
-                        ),
-                        child: const Text('Baixar'),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Fechar'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.75),
-      builder: (_) {
-        final size = MediaQuery.of(context).size;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(12),
-          child: SafeArea(
-            top: false,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: size.height - 24,
-                maxWidth: size.width - 24,
-              ),
-              child: Entry(
-                dy: 8,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: p.layer,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: p.border),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: InteractiveViewer(
-                            minScale: 0.5,
-                            maxScale: 4,
-                            child: Center(child: Image.network(src)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.tonal(
-                              onPressed: () => downloadImage(
-                                src,
-                                filename:
-                                    'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
-                              ),
-                              child: const Text('Baixar'),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Fechar'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
->>>>>>> Stashed changes
     );
   }
 

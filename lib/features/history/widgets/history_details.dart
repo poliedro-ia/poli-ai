@@ -6,6 +6,7 @@ class DetailsPaneMobile extends StatelessWidget {
   final String src;
   final String prompt;
   final String model;
+  final VoidCallback onDownload;
   final VoidCallback onDelete;
   final VoidCallback onClose;
 
@@ -15,6 +16,7 @@ class DetailsPaneMobile extends StatelessWidget {
     required this.src,
     required this.prompt,
     required this.model,
+    required this.onDownload,
     required this.onDelete,
     required this.onClose,
   });
@@ -71,6 +73,10 @@ class DetailsPaneMobile extends StatelessWidget {
             child: Wrap(
               spacing: 8,
               children: [
+                FilledButton.tonal(
+                  onPressed: onDownload,
+                  child: const Text('Baixar'),
+                ),
                 FilledButton.tonal(
                   onPressed: onDelete,
                   child: const Text('Excluir'),
@@ -162,7 +168,6 @@ class DetailsPaneWeb extends StatelessWidget {
                   onPressed: onDownload,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
-                    textStyle: const TextStyle(fontSize: 16),
                   ),
                   child: const Text('Baixar'),
                 ),
@@ -173,7 +178,6 @@ class DetailsPaneWeb extends StatelessWidget {
                   onPressed: onDelete,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
-                    textStyle: const TextStyle(fontSize: 16),
                   ),
                   child: const Text('Excluir'),
                 ),

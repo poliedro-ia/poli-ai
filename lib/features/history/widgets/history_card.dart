@@ -22,9 +22,9 @@ class HistoryImageCard extends StatelessWidget {
     final p = palette;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Stack(
           children: [
             Positioned.fill(child: Container(color: p.layer)),
@@ -55,7 +55,7 @@ class HistoryImageCard extends StatelessWidget {
                   color: p.dark
                       ? const Color(0xC0101425)
                       : const Color(0xCCFFFFFF),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: p.border),
                 ),
                 child: Row(

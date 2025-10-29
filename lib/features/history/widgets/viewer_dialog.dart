@@ -1,5 +1,3 @@
-// ignore_for_file: unused_local_variable
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -83,7 +81,7 @@ void showHistoryViewer({
                         Expanded(
                           flex: 6,
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             child: InteractiveViewer(
                               minScale: 0.5,
                               maxScale: 4,
@@ -196,12 +194,28 @@ void showHistoryViewer({
                       Expanded(
                         flex: 6,
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           child: InteractiveViewer(
                             minScale: 0.5,
                             maxScale: 4,
                             child: Center(
-                              child: SmartImage(src: src, fit: BoxFit.contain),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: palette.border.withOpacity(.8),
+                                    width: 1,
+                                  ),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: SmartImage(
+                                    src: src,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -214,6 +228,7 @@ void showHistoryViewer({
                           src: src,
                           prompt: prompt,
                           model: model,
+                          onDownload: onDownload,
                           onDelete: onDelete,
                           onClose: () => Navigator.pop(context),
                         ),
@@ -224,12 +239,28 @@ void showHistoryViewer({
                     children: [
                       Expanded(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           child: InteractiveViewer(
                             minScale: 0.5,
                             maxScale: 4,
                             child: Center(
-                              child: SmartImage(src: src, fit: BoxFit.contain),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: palette.border.withOpacity(.8),
+                                    width: 1,
+                                  ),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: SmartImage(
+                                    src: src,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -240,6 +271,7 @@ void showHistoryViewer({
                         src: src,
                         prompt: prompt,
                         model: model,
+                        onDownload: onDownload,
                         onDelete: onDelete,
                         onClose: () => Navigator.pop(context),
                       ),
