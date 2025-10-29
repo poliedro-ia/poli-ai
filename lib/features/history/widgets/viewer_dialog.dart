@@ -30,25 +30,25 @@ void showHistoryViewer({
       if (kIsWeb && allDocs != null && isWide) {
         int current = startIndex;
 
-        String _src(int i) {
+        String src0(int i) {
           final d = allDocs[i].data();
           return (d['downloadUrl'] as String?) ??
               (d['storagePath'] as String?) ??
               (d['src'] as String? ?? '');
         }
 
-        String _prompt(int i) {
+        String prompt0(int i) {
           final d = allDocs[i].data();
           return (d['prompt'] as String?) ??
               (d['promptUsado'] as String? ?? '');
         }
 
-        String _model(int i) {
+        String model0(int i) {
           final d = allDocs[i].data();
           return (d['model'] as String?) ?? '';
         }
 
-        String? _storage(int i) {
+        String? storage(int i) {
           final d = allDocs[i].data();
           return d['storagePath'] as String?;
         }
@@ -60,11 +60,11 @@ void showHistoryViewer({
               setS(() => current = next < 0 ? allDocs.length - 1 : next);
             }
 
-            final curSrc = _src(current);
-            final curPrompt = _prompt(current);
-            final curModel = _model(current);
+            final curSrc = src0(current);
+            final curPrompt = prompt0(current);
+            final curModel = model0(current);
             final curId = allDocs[current].id;
-            final curStorage = _storage(current);
+            final curStorage = storage(current);
 
             return Dialog(
               backgroundColor: Colors.transparent,

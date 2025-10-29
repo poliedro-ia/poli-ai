@@ -80,7 +80,7 @@ class GeneratorPanel extends StatelessWidget {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: tema,
+                  initialValue: tema,
                   items: temaOptions
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
@@ -94,7 +94,7 @@ class GeneratorPanel extends StatelessWidget {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: subarea,
+                  initialValue: subarea,
                   items: subareaOptions
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
@@ -112,7 +112,7 @@ class GeneratorPanel extends StatelessWidget {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: estilo,
+                  initialValue: estilo,
                   items: estiloOptions
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
@@ -126,7 +126,7 @@ class GeneratorPanel extends StatelessWidget {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: aspect,
+                  initialValue: aspect,
                   items: aspectOptions
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),

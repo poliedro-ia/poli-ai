@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:app/features/history/ui/history_ui.dart';
 import 'package:app/features/history/widgets/history_card.dart';
 import 'package:app/features/history/widgets/viewer_dialog.dart';
+import 'package:app/core/motion/motion.dart';
+import 'package:app/core/motion/route.dart';
 
 class HistoryPage extends StatefulWidget {
   static const route = '/history';
@@ -40,19 +42,20 @@ class _HistoryPageState extends State<HistoryPage> {
         padding: const EdgeInsets.only(left: 20),
         child: GestureDetector(
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HomePage()),
-            );
+            Navigator.push(context, slideUpRoute(const HomePage()));
           },
-          child: Image.asset(
-            _dark ? Images.whiteLogo : Images.logo,
-            height: 100,
-            width: 100,
+          child: Entry(
+            dy: -8,
+            child: Image.asset(
+              _dark ? Images.whiteLogo : Images.logo,
+              height: 100,
+              width: 100,
+            ),
           ),
         ),
       ),
       actions: [
+<<<<<<< Updated upstream
         if (kIsWeb)
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -62,6 +65,16 @@ class _HistoryPageState extends State<HistoryPage> {
                   context,
                   MaterialPageRoute(builder: (_) => const HomePage()),
                 );
+=======
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Entry(
+            dy: -8,
+            delay: const Duration(milliseconds: 120),
+            child: FilledButton(
+              onPressed: () {
+                Navigator.push(context, slideUpRoute(const HomePage()));
+>>>>>>> Stashed changes
               },
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xff2563EB),
@@ -89,36 +102,44 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget build(BuildContext context) {
     final u = FirebaseAuth.instance.currentUser;
     final p = HistoryPalette(_dark);
-    return Scaffold(
-      backgroundColor: p.bg,
-      appBar: _appBar(p),
-      body: u == null ? _requireLogin(p) : _gridFor(p, u.uid),
+    return Motion(
+      base: const Duration(milliseconds: 320),
+      child: Scaffold(
+        backgroundColor: p.bg,
+        appBar: _appBar(p),
+        body: Switcher(
+          child: u == null ? _requireLogin(p) : _gridFor(p, u.uid),
+        ),
+      ),
     );
   }
 
   Widget _requireLogin(HistoryPalette p) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.lock_outline, color: p.textSub, size: 48),
-            const SizedBox(height: 12),
-            Text(
-              'Entre para visualizar seu histórico',
-              style: TextStyle(
-                color: p.textMain,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+      child: Entry(
+        dy: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_outline, color: p.textSub, size: 48),
+              const SizedBox(height: 12),
+              Text(
+                'Entre para visualizar seu histórico',
+                style: TextStyle(
+                  color: p.textMain,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Suas imagens geradas aparecerão aqui.',
-              style: TextStyle(color: p.textSub),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'Suas imagens geradas aparecerão aqui.',
+                style: TextStyle(color: p.textSub),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -194,24 +215,39 @@ class _HistoryPageState extends State<HistoryPage> {
                     (d['promptUsado'] as String? ?? '');
                 final model = (d['model'] as String?) ?? '';
                 final storagePath = d['storagePath'] as String?;
-                return HistoryImageCard(
-                  palette: p,
-                  src: src,
-                  onTap: () => _openViewer(
+                return Entry(
+                  delay: Duration(milliseconds: 40 + (i % cross) * 70),
+                  dy: 10,
+                  child: HistoryImageCard(
                     palette: p,
-                    docId: id,
-                    storagePath: storagePath,
                     src: src,
-                    prompt: prompt,
-                    model: model,
-                    startIndex: i,
-                    allDocs: docs,
+                    onTap: () => _openViewer(
+                      palette: p,
+                      docId: id,
+                      storagePath: storagePath,
+                      src: src,
+                      prompt: prompt,
+                      model: model,
+                      startIndex: i,
+                      allDocs: docs,
+                    ),
+                    onDownload: kIsWeb
+                        ? () => downloadImage(
+                            src,
+                            filename:
+                                'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
+                          )
+                        : null,
+                    onDelete: () => _confirmDelete(id, storagePath, src),
                   ),
+<<<<<<< Updated upstream
                   onDownload: () => downloadImage(
                     src,
                     filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
                   ),
                   onDelete: () => _confirmDelete(id, storagePath, src),
+=======
+>>>>>>> Stashed changes
                 );
               },
             );
@@ -261,19 +297,22 @@ class _HistoryPageState extends State<HistoryPage> {
     if (uid == null) return;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Remover imagem?'),
-        content: const Text('A imagem será removida do seu histórico.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remover'),
-          ),
-        ],
+      builder: (_) => Entry(
+        dy: 8,
+        child: AlertDialog(
+          title: const Text('Remover imagem?'),
+          content: const Text('A imagem será removida do seu histórico.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Remover'),
+            ),
+          ],
+        ),
       ),
     );
     if (ok != true) return;
