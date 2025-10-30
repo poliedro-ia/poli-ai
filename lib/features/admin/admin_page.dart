@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/features/admin/admin_service.dart';
 import 'package:app/features/home/home_page.dart';
@@ -182,7 +181,6 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   PreferredSizeWidget _appBar() {
-    final user = FirebaseAuth.instance.currentUser;
     return AppBar(
       automaticallyImplyLeading: false,
       titleSpacing: 0,
@@ -228,7 +226,7 @@ class _AdminPageState extends State<AdminPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(user != null ? 'Minha Conta' : 'Login'),
+              child: Text('Voltar'),
             ),
           ),
       ],

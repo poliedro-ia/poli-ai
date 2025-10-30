@@ -29,7 +29,6 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   PreferredSizeWidget _appBar(HistoryPalette p) {
-    final user = FirebaseAuth.instance.currentUser;
     return AppBar(
       automaticallyImplyLeading: false,
       backgroundColor: p.bg,
@@ -74,7 +73,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(user != null ? 'Minha Conta' : 'Login'),
+              child: Text('Voltar'),
             ),
           ),
         ),
@@ -293,16 +292,15 @@ class _HistoryPageState extends State<HistoryPage> {
       src: src,
       prompt: prompt,
       model: model,
+      startIndex: startIndex,
+      allDocs: allDocs,
       onDownload: () => downloadImage(
         src,
         filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
       ),
       onDelete: () {
-        Navigator.pop(context);
         _confirmDelete(docId, storagePath, src);
       },
-      startIndex: startIndex,
-      allDocs: allDocs,
     );
   }
 

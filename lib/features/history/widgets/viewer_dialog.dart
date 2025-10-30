@@ -28,40 +28,36 @@ void showHistoryViewer({
       if (kIsWeb && allDocs != null && isWide) {
         int current = startIndex;
 
-        String src0(int i) {
+        String srcAt(int i) {
           final d = allDocs[i].data();
           return (d['downloadUrl'] as String?) ??
               (d['storagePath'] as String?) ??
               (d['src'] as String? ?? '');
         }
 
-        String prompt0(int i) {
+        String promptAt(int i) {
           final d = allDocs[i].data();
           return (d['prompt'] as String?) ??
               (d['promptUsado'] as String? ?? '');
         }
 
-        String model0(int i) {
+        String modelAt(int i) {
           final d = allDocs[i].data();
           return (d['model'] as String?) ?? '';
         }
 
-        String? storage(int i) {
-          final d = allDocs[i].data();
-          return d['storagePath'] as String?;
-        }
 
         return StatefulBuilder(
           builder: (context, setS) {
             void go(int dir) {
-              final next = (current + dir) % allDocs.length;
-              setS(() => current = next < 0 ? allDocs.length - 1 : next);
+              final len = allDocs.length;
+              final n = (current + dir) % len;
+              setS(() => current = n < 0 ? len - 1 : n);
             }
 
-            final curSrc = src0(current);
-            final curPrompt = prompt0(current);
-            final curModel = model0(current);
-            storage(current);
+            final curSrc = srcAt(current);
+            final curPrompt = promptAt(current);
+            final curModel = modelAt(current);
 
             return Dialog(
               backgroundColor: Colors.transparent,
@@ -71,10 +67,17 @@ void showHistoryViewer({
                   Container(
                     decoration: BoxDecoration(
                       color: palette.layer,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: palette.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.20),
+                          blurRadius: 24,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
                     ),
-                    padding: const EdgeInsets.fromLTRB(56, 32, 84, 16),
+                    padding: const EdgeInsets.fromLTRB(72, 28, 72, 16),
                     child: Row(
                       children: [
                         Expanded(
@@ -87,26 +90,33 @@ void showHistoryViewer({
                               child: Center(
                                 child: Container(
                                   decoration: BoxDecoration(
+                                    color: palette.dark
+                                        ? const Color(0xFF0E1120)
+                                        : Colors.white,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
                                       color: palette.border.withOpacity(.8),
                                       width: 1,
                                     ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(.12),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ],
                                   ),
                                   clipBehavior: Clip.antiAlias,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: SmartImage(
-                                      src: curSrc,
-                                      fit: BoxFit.contain,
-                                    ),
+                                  child: SmartImage(
+                                    src: curSrc,
+                                    fit: BoxFit.contain,
                                   ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 18),
+                        const SizedBox(width: 24),
                         Flexible(
                           flex: 5,
                           child: DetailsPaneWeb(
@@ -136,15 +146,20 @@ void showHistoryViewer({
                     ),
                   ),
                   Positioned(
-                    left: 12,
+                    left: 16,
                     top: 0,
                     bottom: 0,
                     child: Center(
-                      child: IconButton(
+                      child: IconButton.filledTonal(
+                        style: IconButton.styleFrom(
+                          backgroundColor: palette.overlay,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(10),
+                        ),
                         tooltip: 'Anterior',
                         icon: Icon(
                           Icons.chevron_left_rounded,
-                          size: 32,
+                          size: 28,
                           color: palette.textMain.withOpacity(.85),
                         ),
                         onPressed: () => go(-1),
@@ -152,15 +167,20 @@ void showHistoryViewer({
                     ),
                   ),
                   Positioned(
-                    right: 12,
+                    right: 16,
                     top: 0,
                     bottom: 0,
                     child: Center(
-                      child: IconButton(
+                      child: IconButton.filledTonal(
+                        style: IconButton.styleFrom(
+                          backgroundColor: palette.overlay,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(10),
+                        ),
                         tooltip: 'Próxima',
                         icon: Icon(
                           Icons.chevron_right_rounded,
-                          size: 32,
+                          size: 28,
                           color: palette.textMain.withOpacity(.85),
                         ),
                         onPressed: () => go(1),
@@ -183,10 +203,17 @@ void showHistoryViewer({
           child: Container(
             decoration: BoxDecoration(
               color: palette.layer,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(color: palette.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.20),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             child: isWideLayout
                 ? Row(
                     children: [
@@ -200,26 +227,33 @@ void showHistoryViewer({
                             child: Center(
                               child: Container(
                                 decoration: BoxDecoration(
+                                  color: palette.dark
+                                      ? const Color(0xFF0E1120)
+                                      : Colors.white,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: palette.border.withOpacity(.8),
                                     width: 1,
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(.12),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
                                 ),
                                 clipBehavior: Clip.antiAlias,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: SmartImage(
-                                    src: src,
-                                    fit: BoxFit.contain,
-                                  ),
+                                child: SmartImage(
+                                  src: src,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
                       Expanded(
                         flex: 4,
                         child: DetailsPaneMobile(
@@ -228,7 +262,10 @@ void showHistoryViewer({
                           prompt: prompt,
                           model: model,
                           onDownload: onDownload,
-                          onDelete: onDelete,
+                          onDelete: () {
+                            Navigator.pop(context);
+                            onDelete();
+                          },
                           onClose: () => Navigator.pop(context),
                         ),
                       ),
@@ -245,19 +282,26 @@ void showHistoryViewer({
                             child: Center(
                               child: Container(
                                 decoration: BoxDecoration(
+                                  color: palette.dark
+                                      ? const Color(0xFF0E1120)
+                                      : Colors.white,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: palette.border.withOpacity(.8),
                                     width: 1,
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(.12),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
                                 ),
                                 clipBehavior: Clip.antiAlias,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: SmartImage(
-                                    src: src,
-                                    fit: BoxFit.contain,
-                                  ),
+                                child: SmartImage(
+                                  src: src,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ),
@@ -271,7 +315,10 @@ void showHistoryViewer({
                         prompt: prompt,
                         model: model,
                         onDownload: onDownload,
-                        onDelete: onDelete,
+                        onDelete: () {
+                          Navigator.pop(context);
+                          onDelete();
+                        },
                         onClose: () => Navigator.pop(context),
                       ),
                       const SizedBox(height: 12),

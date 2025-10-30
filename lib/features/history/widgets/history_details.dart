@@ -25,10 +25,11 @@ class DetailsPaneMobile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: palette.dark ? const Color(0xff0F1220) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: palette.dark ? const Color(0xFF0E1120) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: palette.border),
       ),
+
       padding: const EdgeInsets.all(14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -72,16 +73,64 @@ class DetailsPaneMobile extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: [
                 FilledButton.tonal(
                   onPressed: onDownload,
-                  child: const Text('Baixar'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.download_rounded, size: 18),
+                      SizedBox(width: 8),
+                      Text('Baixar'),
+                    ],
+                  ),
                 ),
                 FilledButton.tonal(
                   onPressed: onDelete,
-                  child: const Text('Excluir'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    backgroundColor: palette.dark
+                        ? const Color(0x332255FF)
+                        : const Color(0x33FF5252),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.delete_outline, size: 18),
+                      SizedBox(width: 8),
+                      Text('Excluir'),
+                    ],
+                  ),
                 ),
-                FilledButton(onPressed: onClose, child: const Text('Fechar')),
+                FilledButton(
+                  onPressed: onClose,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Fechar'),
+                ),
               ],
             ),
           ),
