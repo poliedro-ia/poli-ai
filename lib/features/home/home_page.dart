@@ -266,7 +266,100 @@ class _HomeState extends State<HomePage> {
     );
   }
 
-  Widget _bodyCreate(HomePalette p) {
+  Widget _hero(HomePalette p) {
+    final heroTitleSize = kIsWeb ? 56.0 : 36.0;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        kIsWeb ? 32.0 : 24.0,
+        kIsWeb ? 68.0 : 42.0,
+        kIsWeb ? 32.0 : 24.0,
+        kIsWeb ? 42.0 : 34.0,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            children: [
+              Entry(
+                delay: const Duration(milliseconds: 60),
+                dy: -6,
+                child: Text(
+                  'Onde ideias viram\nimagens educacionais',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: p.text,
+                    fontSize: heroTitleSize,
+                    fontWeight: FontWeight.w900,
+                    height: 1.06,
+                    letterSpacing: -0.8,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Entry(
+                delay: const Duration(milliseconds: 140),
+                dy: 6,
+                child: Opacity(
+                  opacity: .9,
+                  child: Text(
+                    'Gere ilustrações com aparência profissional para Física e Química, em segundos.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: p.subText,
+                      fontSize: 16,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Entry(
+                delay: const Duration(milliseconds: 200),
+                dy: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: p.border),
+                    gradient: LinearGradient(
+                      colors: [
+                        p.dark
+                            ? const Color(0x332563EB)
+                            : const Color(0x22A0B7FF),
+                        Colors.transparent,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.bolt_rounded, color: p.cta, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Rápido • Didático • Preciso',
+                        style: TextStyle(
+                          color: p.text,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: .2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _builderArea(HomePalette p) {
     final w = MediaQuery.of(context).size.width;
     final isWide = w >= 960;
 
@@ -316,129 +409,152 @@ class _HomeState extends State<HomePage> {
       ),
     );
 
-    final heroTopPad = kIsWeb ? 64.0 : 40.0;
-    final heroSidePad = kIsWeb ? 32.0 : 28.0;
-    final heroBottomPad = kIsWeb ? 40.0 : 36.0;
-    final heroTitleSize = kIsWeb ? 56.0 : 36.0;
-
-    return SafeArea(
-      bottom: false,
-      child: SingleChildScrollView(
-        controller: _scroll,
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+    return Padding(
+      key: _genKey,
+      padding: EdgeInsets.fromLTRB(
+        kIsWeb ? 32.0 : 24.0,
+        0,
+        kIsWeb ? 32.0 : 24.0,
+        kIsWeb ? 64.0 : 48.0,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: isWide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: left),
+                    const SizedBox(width: 32),
+                    Expanded(child: right),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [left, const SizedBox(height: 24), right],
+                ),
         ),
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                heroSidePad,
-                heroTopPad,
-                heroSidePad,
-                heroBottomPad,
+      ),
+    );
+  }
+
+  Widget _brandStrip(HomePalette p) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        kIsWeb ? 32.0 : 24.0,
+        16,
+        kIsWeb ? 32.0 : 24.0,
+        kIsWeb ? 36.0 : 28.0,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Entry(
+            delay: const Duration(milliseconds: 100),
+            dy: 6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              decoration: BoxDecoration(
+                color: p.dark
+                    ? const Color(0x111E2233)
+                    : const Color(0x11A7B3CC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: p.border),
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Column(
-                    children: [
-                      Entry(
-                        delay: const Duration(milliseconds: 60),
-                        dy: -6,
-                        child: Text(
-                          'Onde Ideias Viram\nImagens Educacionais',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: p.text,
-                            fontSize: heroTitleSize,
-                            fontWeight: FontWeight.w900,
-                            height: 1.1,
-                            letterSpacing: -0.8,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Entry(
-                        delay: const Duration(milliseconds: 140),
-                        dy: 6,
-                        child: Text(
-                          'Gere ilustrações educativas com aparência profissional para Física e Química. Simples, rápido e preciso.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: p.subText,
-                            fontSize: 16,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              key: _genKey,
-              padding: EdgeInsets.fromLTRB(
-                heroSidePad,
-                0,
-                heroSidePad,
-                kIsWeb ? 64 : 48,
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: isWide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: left),
-                            const SizedBox(width: 32),
-                            Expanded(child: right),
-                          ],
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [left, const SizedBox(height: 24), right],
-                        ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                heroSidePad,
-                16,
-                heroSidePad,
-                kIsWeb ? 36 : 28,
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Entry(
-                    delay: const Duration(milliseconds: 100),
-                    dy: 6,
-                    child: Column(
-                      children: [
-                        Text(
-                          'EduImage • Ferramenta para criação de imagens educacionais',
-                          style: TextStyle(color: p.subText),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Física • Química',
-                          style: TextStyle(
-                            color: p.dark
-                                ? const Color(0xff6F7891)
-                                : const Color(0xff6A768F),
-                          ),
-                        ),
-                      ],
+              child: Column(
+                children: [
+                  Text(
+                    'EduImage • Criação de imagens educacionais',
+                    style: TextStyle(
+                      color: p.subText,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: .2,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Física • Química',
+                    style: TextStyle(
+                      color: p.dark
+                          ? const Color(0xff6F7891)
+                          : const Color(0xff6A768F),
+                      letterSpacing: .2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _bodyCreate(HomePalette p) {
+    return SafeArea(
+      bottom: false,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: true,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 500),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: p.dark
+                        ? [const Color(0xFF0B0E19), const Color(0xFF0E1326)]
+                        : [const Color(0xFFF7F8FA), const Color(0xFFEFF3FE)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+          Positioned(
+            top: -80,
+            right: -60,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: p.cta.withOpacity(.12),
+                boxShadow: [
+                  BoxShadow(
+                    color: p.cta.withOpacity(.15),
+                    blurRadius: 80,
+                    spreadRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -60,
+            left: -40,
+            child: Container(
+              width: 260,
+              height: 260,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: p.dark
+                    ? const Color(0xFF202B52).withOpacity(.12)
+                    : const Color(0xFF6EA8FF).withOpacity(.10),
+              ),
+            ),
+          ),
+          SingleChildScrollView(
+            controller: _scroll,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              children: [_hero(p), _builderArea(p), _brandStrip(p)],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -797,6 +913,7 @@ class _HomeState extends State<HomePage> {
           child: Scaffold(
             backgroundColor: p.bg,
             resizeToAvoidBottomInset: true,
+            extendBodyBehindAppBar: true,
             appBar: isAdminTabMobile ? null : _appBar(p),
             body: Switcher(
               child: _currentIndex == 0
@@ -809,6 +926,15 @@ class _HomeState extends State<HomePage> {
                 ? AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOutCubic,
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(.08),
+                          blurRadius: 24,
+                          offset: const Offset(0, -8),
+                        ),
+                      ],
+                    ),
                     child: BottomNavigationBar(
                       currentIndex: _currentIndex.clamp(0, items.length - 1),
                       onTap: (i) {

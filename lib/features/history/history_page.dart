@@ -58,22 +58,23 @@ class _HistoryPageState extends State<HistoryPage> {
           child: Entry(
             dy: -8,
             delay: const Duration(milliseconds: 120),
-            child: FilledButton(
-              onPressed: () {
-                Navigator.push(context, slideUpRoute(const HomePage()));
-              },
+            child: FilledButton.icon(
+              onPressed: () =>
+                  Navigator.push(context, slideUpRoute(const HomePage())),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xff2563EB),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
+                  horizontal: 18,
                   vertical: 12,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                elevation: 0,
               ),
-              child: Text('Voltar'),
+              icon: const Icon(Icons.home_rounded, size: 18),
+              label: const Text('Voltar'),
             ),
           ),
         ),
@@ -93,9 +94,45 @@ class _HistoryPageState extends State<HistoryPage> {
       base: const Duration(milliseconds: 320),
       child: Scaffold(
         backgroundColor: p.bg,
+        extendBodyBehindAppBar: true,
         appBar: _appBar(p),
-        body: Switcher(
-          child: u == null ? _requireLogin(p) : _groupedGrid(p, u.uid),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring: true,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 500),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _dark
+                          ? [const Color(0xFF0B0E19), const Color(0xFF101425)]
+                          : [const Color(0xFFF7F8FA), const Color(0xFFEFF3FE)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: -80,
+              right: -60,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF2563EB).withOpacity(.12),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Switcher(
+                child: u == null ? _requireLogin(p) : _groupedGrid(p, u.uid),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -107,32 +144,39 @@ class _HistoryPageState extends State<HistoryPage> {
         dy: 10,
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.lock_outline, color: p.textSub, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                'Entre para visualizar seu histórico',
-                style: TextStyle(
-                  color: p.textMain,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+          child: Container(
+            decoration: BoxDecoration(
+              color: p.layer,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: p.border),
+            ),
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_outline, color: p.textSub, size: 48),
+                const SizedBox(height: 12),
+                Text(
+                  'Entre para visualizar seu histórico',
+                  style: TextStyle(
+                    color: p.textMain,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Suas imagens geradas aparecerão aqui.',
-                style: TextStyle(color: p.textSub),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  'Suas imagens geradas aparecerão aqui.',
+                  style: TextStyle(color: p.textSub),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  /// ---------- NOVO: grade agrupada por disciplina ----------
   Widget _groupedGrid(HistoryPalette p, String uid) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
@@ -170,7 +214,6 @@ class _HistoryPageState extends State<HistoryPage> {
           );
         }
 
-        // Agrupa por disciplina / assunto
         final Map<String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>
         groups = {};
         for (final d in docs) {
@@ -184,86 +227,128 @@ class _HistoryPageState extends State<HistoryPage> {
           final title = _titleCase(tema);
           groups.putIfAbsent(title, () => []).add(d);
         }
-
         final sortedKeys = groups.keys.toList()..sort();
 
-        return ListView.builder(
+        return ListView(
           padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-          itemCount: sortedKeys.length,
-          itemBuilder: (_, gi) {
-            final key = sortedKeys[gi];
-            final list = groups[key]!;
-            return _Section(
-              title: key,
-              palette: p,
-              child: LayoutBuilder(
-                builder: (context, c) {
-                  final w = c.maxWidth;
-                  int cross = 2;
-                  if (w >= 1400)
-                    cross = 6;
-                  else if (w >= 1200)
-                    cross = 5;
-                  else if (w >= 900)
-                    cross = 4;
-                  else if (w >= 640)
-                    cross = 3;
-
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: cross,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 1,
-                    ),
-                    itemCount: list.length,
-                    itemBuilder: (_, i) {
-                      final doc = list[i];
-                      final d = doc.data();
-                      final id = doc.id;
-                      final src =
-                          (d['downloadUrl'] as String?) ??
-                          (d['storagePath'] as String?) ??
-                          (d['src'] as String? ?? '');
-                      final prompt =
-                          (d['prompt'] as String?) ??
-                          (d['promptUsado'] as String? ?? '');
-                      final model = (d['model'] as String?) ?? '';
-                      final storagePath = d['storagePath'] as String?;
-
-                      return Entry(
-                        delay: Duration(milliseconds: 40 + (i % cross) * 70),
-                        dy: 10,
-                        child: HistoryImageCard(
-                          palette: p,
-                          src: src,
-                          onTap: () => _openViewer(
-                            palette: p,
-                            docId: id,
-                            storagePath: storagePath,
-                            src: src,
-                            prompt: prompt,
-                            model: model,
-                            startIndex: i,
-                            allDocs:
-                                list, // navegação por setas dentro do grupo
-                          ),
-                          onDownload: () => downloadImage(
-                            src,
-                            filename:
-                                'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
-                          ),
-                          onDelete: () => _confirmDelete(id, storagePath, src),
+          children: [
+            Entry(
+              dy: -6,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: p.layer,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: p.border),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                child: Row(
+                  children: [
+                    Icon(Icons.history_edu_rounded, color: p.textMain),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Seu acervo organizado por disciplina',
+                        style: TextStyle(
+                          color: p.textMain,
+                          fontWeight: FontWeight.w700,
                         ),
-                      );
-                    },
-                  );
-                },
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: p.border),
+                        color: _dark
+                            ? const Color(0x22151827)
+                            : const Color(0x22FFFFFF),
+                      ),
+                      child: Text(
+                        '${docs.length} itens',
+                        style: TextStyle(color: p.textMain),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            );
-          },
+            ),
+            const SizedBox(height: 14),
+            for (final key in sortedKeys)
+              _Section(
+                title: key,
+                palette: p,
+                child: LayoutBuilder(
+                  builder: (context, c) {
+                    final w = c.maxWidth;
+                    int cross = 2;
+                    if (w >= 1400) {
+                      cross = 6;
+                    } else if (w >= 1200) {
+                      cross = 5;
+                    } else if (w >= 900) {
+                      cross = 4;
+                    } else if (w >= 640) {
+                      cross = 3;
+                    }
+                    final list = groups[key]!;
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: cross,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 1,
+                      ),
+                      itemCount: list.length,
+                      itemBuilder: (_, i) {
+                        final doc = list[i];
+                        final d = doc.data();
+                        final id = doc.id;
+                        final src =
+                            (d['downloadUrl'] as String?) ??
+                            (d['storagePath'] as String?) ??
+                            (d['src'] as String? ?? '');
+                        final prompt =
+                            (d['prompt'] as String?) ??
+                            (d['promptUsado'] as String? ?? '');
+                        final model = (d['model'] as String?) ?? '';
+                        final storagePath = d['storagePath'] as String?;
+
+                        return Entry(
+                          delay: Duration(milliseconds: 40 + (i % cross) * 70),
+                          dy: 10,
+                          child: HistoryImageCard(
+                            palette: p,
+                            src: src,
+                            onTap: () => _openViewer(
+                              palette: p,
+                              docId: id,
+                              storagePath: storagePath,
+                              src: src,
+                              prompt: prompt,
+                              model: model,
+                              startIndex: i,
+                              allDocs: list,
+                            ),
+                            onDownload: () => downloadImage(
+                              src,
+                              filename:
+                                  'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
+                            ),
+                            onDelete: () =>
+                                _confirmDelete(id, storagePath, src),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
         );
       },
     );
@@ -372,24 +457,21 @@ class _SectionStyle {
 
 _SectionStyle _sectionStyleFor(String title, HistoryPalette p) {
   final t = title.toLowerCase();
-
   if (t.contains('fís') || t.contains('fis')) {
     return _SectionStyle([
-      const Color(0xFF7C3AED), // purple-600
-      const Color(0xFF2563EB), // blue-600
+      const Color(0xFF7C3AED),
+      const Color(0xFF2563EB),
     ], Icons.bolt_rounded);
   }
   if (t.contains('quím') || t.contains('quim')) {
     return _SectionStyle([
-      const Color(0xFF14B8A6), // teal-500
-      const Color(0xFF22C55E), // green-500
+      const Color(0xFF14B8A6),
+      const Color(0xFF22C55E),
     ], Icons.science_rounded);
   }
-
-  // Default “tech”
   return _SectionStyle([
-    const Color(0xFF6366F1), // indigo-500
-    const Color(0xFF06B6D4), // cyan-500
+    const Color(0xFF6366F1),
+    const Color(0xFF06B6D4),
   ], Icons.grid_view_rounded);
 }
 
@@ -436,7 +518,6 @@ class _SectionState extends State<_Section>
         ),
         child: Column(
           children: [
-            // HEADER
             InkWell(
               borderRadius: BorderRadius.circular(20),
               onTap: () => setState(() => _open = !_open),
@@ -444,7 +525,6 @@ class _SectionState extends State<_Section>
                 padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
                 child: Row(
                   children: [
-                    // Ícone em pill com gradiente
                     Container(
                       width: 44,
                       height: 44,
@@ -456,10 +536,12 @@ class _SectionState extends State<_Section>
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(s.icon, color: Colors.white),
+                      child: const Icon(
+                        Icons.blur_on_rounded,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    // Título com tipografia “tech”
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,7 +558,6 @@ class _SectionState extends State<_Section>
                             ),
                           ),
                           const SizedBox(height: 4),
-                          // Linha sutil decorativa (vibe “tecnológica”)
                           Container(
                             height: 3,
                             width: 80,
@@ -493,7 +574,6 @@ class _SectionState extends State<_Section>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Botão colapsar com glass
                     DecoratedBox(
                       decoration: BoxDecoration(
                         color: p.dark
@@ -518,8 +598,6 @@ class _SectionState extends State<_Section>
                 ),
               ),
             ),
-
-            // CONTEÚDO
             AnimatedCrossFade(
               firstCurve: Curves.easeOutCubic,
               secondCurve: Curves.easeOutCubic,
