@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 class Motion extends InheritedWidget {
   final Duration base;
-  const Motion({super.key, required this.base, required Widget child})
-    : super(child: child);
+  const Motion({super.key, required this.base, required super.child});
 
   static Motion of(BuildContext context) {
     final m = context.dependOnInheritedWidgetOfExactType<Motion>();

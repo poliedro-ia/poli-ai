@@ -110,8 +110,9 @@ class _AdminPageState extends State<AdminPage> {
       final name = (u['displayName'] as String? ?? '').toLowerCase();
       final admin = u['admin'] as bool? ?? false;
       final disabled = u['disabled'] as bool? ?? false;
-      if (q.isNotEmpty && !(email.contains(q) || name.contains(q)))
+      if (q.isNotEmpty && !(email.contains(q) || name.contains(q))) {
         return false;
+      }
       if (_roleFilter == 'admin' && !admin) return false;
       if (_roleFilter == 'user' && admin) return false;
       if (_statusFilter == 'ativo' && disabled) return false;
@@ -518,8 +519,9 @@ class _AdminPageState extends State<AdminPage> {
                         builder: (context, c) {
                           final wide = c.maxWidth >= 900;
                           if (_error.isNotEmpty) return _errorView();
-                          if (!_initialLoaded && _loading)
+                          if (!_initialLoaded && _loading) {
                             return _skeletonView();
+                          }
                           if (filtered.isEmpty) return _emptyView();
                           return wide
                               ? _wideTable(filtered)
