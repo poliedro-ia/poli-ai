@@ -39,31 +39,35 @@ class HistoryService {
       );
     }
 
-    String finalUrl = src;
+    String downloadUrl = src;
+    String? storagePath;
 
     if (src.startsWith('data:image/')) {
       final bytes = _decodeDataUrl(src);
       final ext = _inferExt(src);
       final fileId = DateTime.now().millisecondsSinceEpoch.toString();
-      final ref = _st.ref('users/$uid/images/$fileId.$ext');
-
+      storagePath = 'users/$uid/images/$fileId.$ext';
+      final ref = _st.ref(storagePath);
       final meta = SettableMetadata(contentType: 'image/$ext');
       await ref.putData(bytes, meta);
-      finalUrl = await ref.getDownloadURL();
+      downloadUrl = await ref.getDownloadURL();
     }
 
     final doc = _fs.collection('users').doc(uid).collection('images').doc();
-    await doc.set({
-      'src': finalUrl,
+    final data = <String, dynamic>{
+      'downloadUrl': downloadUrl,
+      if (storagePath != null) 'storagePath': storagePath,
       'prompt': prompt,
+      'promptUsado': prompt,
       'model': model,
-      'aspect': aspectRatio,
-      'tema': temaSelecionado,
-      'subarea': subareaSelecionada,
-      'temaResolved': temaResolvido,
-      'subareaResolved': subareaResolvida,
+      'aspectRatio': aspectRatio,
+      'temaSelecionado': temaSelecionado,
+      'subareaSelecionada': subareaSelecionada,
+      'temaResolvido': temaResolvido,
+      'subareaResolvida': subareaResolvida,
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
+    await doc.set(data);
   }
 
   Uint8List _decodeDataUrl(String dataUrl) {

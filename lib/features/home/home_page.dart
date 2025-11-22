@@ -137,6 +137,7 @@ class _HomeState extends State<HomePage> {
             'storagePath': path,
             'model': data['model'] as String? ?? '',
             'prompt': data['promptUsado'] as String? ?? texto,
+            'promptUsado': data['promptUsado'] as String? ?? texto,
             'aspectRatio': _aspect,
             'temaSelecionado': _tema,
             'subareaSelecionada': _sub,
@@ -464,7 +465,7 @@ class _HomeState extends State<HomePage> {
               child: Column(
                 children: [
                   Text(
-                    'EduImage • Criação de imagens educacionais',
+                    'PoliAI • Criação de imagens educacionais',
                     style: TextStyle(
                       color: p.subText,
                       fontWeight: FontWeight.w600,

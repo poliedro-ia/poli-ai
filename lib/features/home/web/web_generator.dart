@@ -102,7 +102,7 @@ class WebGenerator extends StatelessWidget {
                               Expanded(
                                 child: DropdownButtonFormField<String>(
                                   isExpanded: true,
-                                  initialValue: selectedTemaLabel,
+                                  value: selectedTemaLabel,
                                   items: temaOptions
                                       .map(
                                         (e) => DropdownMenuItem(
@@ -129,7 +129,7 @@ class WebGenerator extends StatelessWidget {
                               Expanded(
                                 child: DropdownButtonFormField<String>(
                                   isExpanded: true,
-                                  initialValue: selectedSubareaLabel,
+                                  value: selectedSubareaLabel,
                                   items: subs
                                       .map(
                                         (e) => DropdownMenuItem(
@@ -160,7 +160,7 @@ class WebGenerator extends StatelessWidget {
                               Expanded(
                                 child: DropdownButtonFormField<String>(
                                   isExpanded: true,
-                                  initialValue: selectedEstiloLabel,
+                                  value: selectedEstiloLabel,
                                   items: estiloOptions
                                       .map(
                                         (e) => DropdownMenuItem(
@@ -187,7 +187,7 @@ class WebGenerator extends StatelessWidget {
                               Expanded(
                                 child: DropdownButtonFormField<String>(
                                   isExpanded: true,
-                                  initialValue: selectedAspect,
+                                  value: selectedAspect,
                                   items: aspectos
                                       .map(
                                         (e) => DropdownMenuItem(
@@ -208,6 +208,38 @@ class WebGenerator extends StatelessWidget {
                                   ),
                                   dropdownColor: fieldBg,
                                   style: TextStyle(color: mainText),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Switch(
+                                value: modoDidatico,
+                                onChanged: onModoDidaticoChanged,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Modo didático',
+                                      style: TextStyle(
+                                        color: mainText,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Otimize para uso em sala: contraste alto, rótulos claros e foco na compreensão.',
+                                      style: TextStyle(
+                                        color: subText,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -357,7 +389,7 @@ class WebGenerator extends StatelessWidget {
     Color fieldBorder,
     bool isDark,
   ) {
-    final focus = isDark ? const Color(0xff2563EB) : const Color(0xff2563EB);
+    final focus = const Color(0xff2563EB);
     final labelColor = isDark
         ? const Color(0xff97A0B5)
         : const Color(0xff6B7280);

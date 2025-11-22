@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ImageEntry {
   final String id;
   final String downloadUrl;
@@ -26,18 +28,33 @@ class ImageEntry {
   });
 
   factory ImageEntry.fromMap(String id, Map<String, dynamic> map) {
+    final dynamic created = map['createdAt'];
+    int createdMs;
+    if (created is Timestamp) {
+      createdMs = created.millisecondsSinceEpoch;
+    } else if (created is num) {
+      createdMs = created.toInt();
+    } else {
+      createdMs = 0;
+    }
+
     return ImageEntry(
       id: id,
-      downloadUrl: map['downloadUrl'] as String,
-      storagePath: map['storagePath'] as String,
+      downloadUrl:
+          (map['downloadUrl'] as String?) ?? (map['src'] as String? ?? ''),
+      storagePath: (map['storagePath'] as String?) ?? '',
       model: map['model'] as String?,
-      prompt: map['prompt'] as String?,
-      aspectRatio: map['aspectRatio'] as String?,
+      prompt: (map['prompt'] as String?) ?? (map['promptUsado'] as String?),
+      aspectRatio:
+          (map['aspectRatio'] as String?) ?? (map['aspect'] as String?),
       temaSelecionado: map['temaSelecionado'] as String?,
       subareaSelecionada: map['subareaSelecionada'] as String?,
-      temaResolvido: map['temaResolvido'] as String?,
-      subareaResolvida: map['subareaResolvida'] as String?,
-      createdAt: (map['createdAt'] as num).toInt(),
+      temaResolvido:
+          (map['temaResolvido'] as String?) ?? (map['temaResolved'] as String?),
+      subareaResolvida:
+          (map['subareaResolvida'] as String?) ??
+          (map['subareaResolved'] as String?),
+      createdAt: createdMs,
     );
   }
 }

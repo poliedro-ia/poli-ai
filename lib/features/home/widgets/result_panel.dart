@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:app/core/utils/media_utils.dart';
@@ -75,6 +76,21 @@ class ResultPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   child: LayoutBuilder(
                     builder: (_, c) {
+                      final isDataUrl = previewDataUrlOrUrl!.startsWith(
+                        'data:image/',
+                      );
+                      final imageWidget = isDataUrl
+                          ? Image.memory(
+                              base64Decode(
+                                previewDataUrlOrUrl!.split(',').last,
+                              ),
+                              fit: BoxFit.cover,
+                            )
+                          : Image.network(
+                              previewDataUrlOrUrl!,
+                              fit: BoxFit.cover,
+                              gaplessPlayback: true,
+                            );
                       return AspectRatio(
                         aspectRatio: _ar,
                         child: SizedBox.expand(
@@ -83,11 +99,7 @@ class ResultPanel extends StatelessWidget {
                             child: SizedBox(
                               width: c.maxWidth,
                               height: c.maxWidth / _ar,
-                              child: Image.network(
-                                previewDataUrlOrUrl!,
-                                fit: BoxFit.cover,
-                                gaplessPlayback: true,
-                              ),
+                              child: imageWidget,
                             ),
                           ),
                         ),

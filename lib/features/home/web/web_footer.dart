@@ -14,7 +14,7 @@ class WebFooter extends StatelessWidget {
           child: Column(
             children: const [
               Text(
-                'EduImage • Ferramenta para criação de imagens educacionais',
+                'PoliAI • Ferramenta para criação de imagens educacionais',
                 style: TextStyle(color: Color(0xff97A0B5)),
               ),
               SizedBox(height: 6),

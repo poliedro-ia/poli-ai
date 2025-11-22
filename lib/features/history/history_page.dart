@@ -220,6 +220,7 @@ class _HistoryPageState extends State<HistoryPage> {
           final m = d.data();
           final tema =
               (m['temaResolvido'] ??
+                      m['temaResolved'] ??
                       m['temaSelecionado'] ??
                       m['tema'] ??
                       'Geral')
@@ -379,12 +380,14 @@ class _HistoryPageState extends State<HistoryPage> {
       model: model,
       startIndex: startIndex,
       allDocs: allDocs,
-      onDownload: () => downloadImage(
-        src,
-        filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
-      ),
-      onDelete: () {
-        _confirmDelete(docId, storagePath, src);
+      onDownload: (currentSrc) {
+        downloadImage(
+          currentSrc,
+          filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
+        );
+      },
+      onDelete: (currentDocId, currentStoragePath, currentSrc) {
+        _confirmDelete(currentDocId, currentStoragePath, currentSrc);
       },
     );
   }
