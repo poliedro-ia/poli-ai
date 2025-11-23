@@ -897,8 +897,10 @@ class _HomeState extends State<HomePage> {
     return ValueListenableBuilder<bool>(
       valueListenable: ThemeController.instance.isDark,
       builder: (_, dark, __) {
+        final size = MediaQuery.of(context).size;
+        final isNarrow = size.width < 720;
         final p = HomePalette(dark);
-        final showBottomNav = !kIsWeb;
+        final showBottomNav = isNarrow;
 
         final items = <BottomNavigationBarItem>[
           const BottomNavigationBarItem(
@@ -915,7 +917,8 @@ class _HomeState extends State<HomePage> {
               label: 'Admin',
             ),
         ];
-        final isAdminTabMobile = !kIsWeb && _isAdmin && _currentIndex == 2;
+        final isAdminTabMobile =
+            showBottomNav && _isAdmin && _currentIndex == 2;
 
         return Motion(
           base: const Duration(milliseconds: 260),
@@ -947,7 +950,7 @@ class _HomeState extends State<HomePage> {
                     child: BottomNavigationBar(
                       currentIndex: _currentIndex.clamp(0, items.length - 1),
                       onTap: (i) {
-                        if (!kIsWeb &&
+                        if (showBottomNav &&
                             i == 1 &&
                             FirebaseAuth.instance.currentUser == null) {
                           Navigator.push(

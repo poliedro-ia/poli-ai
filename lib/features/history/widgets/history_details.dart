@@ -23,11 +23,8 @@ class DetailsPaneMobile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final strongButtonStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
-      color: Colors.white,
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-    );
+    final buttonColor = const Color(0xff2563EB);
+    final textColor = Colors.white;
 
     return Container(
       decoration: BoxDecoration(
@@ -80,11 +77,11 @@ class DetailsPaneMobile extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                FilledButton.tonal(
+                FilledButton(
                   onPressed: onDownload,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
+                    backgroundColor: buttonColor,
+                    foregroundColor: textColor,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
@@ -93,20 +90,26 @@ class DetailsPaneMobile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.download_rounded, size: 18),
-                      const SizedBox(width: 8),
-                      Text('Baixar', style: strongButtonStyle),
+                      Icon(Icons.download_rounded, size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        'Baixar',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                FilledButton.tonal(
+                FilledButton(
                   onPressed: onDelete,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
+                    backgroundColor: buttonColor,
+                    foregroundColor: textColor,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
@@ -115,18 +118,26 @@ class DetailsPaneMobile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.delete_outline, size: 18),
-                      const SizedBox(width: 8),
-                      Text('Excluir', style: strongButtonStyle),
+                      Icon(Icons.delete_outline, size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        'Excluir',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 FilledButton(
                   onPressed: onClose,
                   style: FilledButton.styleFrom(
+                    backgroundColor: buttonColor,
+                    foregroundColor: textColor,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
@@ -135,9 +146,9 @@ class DetailsPaneMobile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Fechar',
-                    style: Theme.of(context).textTheme.labelLarge,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -167,11 +178,8 @@ class DetailsPaneWeb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final strongButtonStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
-      color: Colors.white,
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-    );
+    final buttonColor = const Color(0xff2563EB);
+    final textColor = Colors.white;
 
     return Container(
       decoration: BoxDecoration(
@@ -228,26 +236,38 @@ class DetailsPaneWeb extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: FilledButton.tonal(
+                child: FilledButton(
                   onPressed: onDownload,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
+                    backgroundColor: buttonColor,
+                    foregroundColor: textColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
-                  child: Text('Baixar', style: strongButtonStyle),
+                  child: const Text(
+                    'Baixar',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: FilledButton.tonal(
+                child: FilledButton(
                   onPressed: onDelete,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
+                    backgroundColor: buttonColor,
+                    foregroundColor: textColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
-                  child: Text('Excluir', style: strongButtonStyle),
+                  child: const Text(
+                    'Excluir',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],

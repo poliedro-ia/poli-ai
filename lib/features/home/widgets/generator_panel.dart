@@ -57,7 +57,109 @@ class _GeneratorPanelState extends State<GeneratorPanel> {
   @override
   Widget build(BuildContext context) {
     final p = widget.p;
+    final size = MediaQuery.of(context).size;
+    final isNarrow = size.width < 720;
     final horizontalGap = kIsWeb ? 32.0 : 12.0;
+
+    final temaField = DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: widget.tema,
+      items: widget.temaOptions
+          .map(
+            (s) => DropdownMenuItem(
+              value: s,
+              child: Row(
+                children: [
+                  Icon(Icons.science_rounded, size: 18, color: p.subText),
+                  const SizedBox(width: 8),
+                  Text(s),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (v) => v != null ? widget.onTema(v) : null,
+      decoration: HomeDeco.select('Tema', p),
+      dropdownColor: p.fieldBg,
+      style: TextStyle(color: p.text),
+      icon: Icon(Icons.expand_more_rounded, color: p.subText),
+      borderRadius: BorderRadius.circular(16),
+    );
+
+    final subareaField = DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: widget.subarea,
+      items: widget.subareaOptions
+          .map(
+            (s) => DropdownMenuItem(
+              value: s,
+              child: Row(
+                children: [
+                  Icon(Icons.category_rounded, size: 18, color: p.subText),
+                  const SizedBox(width: 8),
+                  Text(s),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (v) => v != null ? widget.onSubarea(v) : null,
+      decoration: HomeDeco.select('Subárea', p),
+      dropdownColor: p.fieldBg,
+      style: TextStyle(color: p.text),
+      icon: Icon(Icons.expand_more_rounded, color: p.subText),
+      borderRadius: BorderRadius.circular(16),
+    );
+
+    final estiloField = DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: widget.estilo,
+      items: widget.estiloOptions
+          .map(
+            (s) => DropdownMenuItem(
+              value: s,
+              child: Row(
+                children: [
+                  Icon(Icons.brush_rounded, size: 18, color: p.subText),
+                  const SizedBox(width: 8),
+                  Text(s),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (v) => v != null ? widget.onEstilo(v) : null,
+      decoration: HomeDeco.select('Estilo', p),
+      dropdownColor: p.fieldBg,
+      style: TextStyle(color: p.text),
+      icon: Icon(Icons.expand_more_rounded, color: p.subText),
+      borderRadius: BorderRadius.circular(16),
+    );
+
+    final aspectField = DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: widget.aspect,
+      items: widget.aspectOptions
+          .map(
+            (s) => DropdownMenuItem(
+              value: s,
+              child: Row(
+                children: [
+                  Icon(Icons.crop_rounded, size: 18, color: p.subText),
+                  const SizedBox(width: 8),
+                  Text(s),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (v) => v != null ? widget.onAspect(v) : null,
+      decoration: HomeDeco.select('Proporção', p),
+      dropdownColor: p.fieldBg,
+      style: TextStyle(color: p.text),
+      icon: Icon(Icons.expand_more_rounded, color: p.subText),
+      borderRadius: BorderRadius.circular(16),
+    );
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
@@ -103,267 +205,39 @@ class _GeneratorPanelState extends State<GeneratorPanel> {
               style: TextStyle(color: p.subText),
             ),
             SizedBox(height: kIsWeb ? 20 : 16),
-
-            if (kIsWeb)
-              Row(
+            if (isNarrow)
+              Column(
                 children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      value: widget.tema,
-                      items: widget.temaOptions
-                          .map(
-                            (s) => DropdownMenuItem(
-                              value: s,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.science_rounded,
-                                    size: 18,
-                                    color: p.subText,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(s),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => v != null ? widget.onTema(v) : null,
-                      decoration: HomeDeco.select('Tema', p),
-                      dropdownColor: p.fieldBg,
-                      style: TextStyle(color: p.text),
-                      icon: Icon(Icons.expand_more_rounded, color: p.subText),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  SizedBox(width: horizontalGap),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      value: widget.subarea,
-                      items: widget.subareaOptions
-                          .map(
-                            (s) => DropdownMenuItem(
-                              value: s,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.category_rounded,
-                                    size: 18,
-                                    color: p.subText,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(s),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => v != null ? widget.onSubarea(v) : null,
-                      decoration: HomeDeco.select('Subárea', p),
-                      dropdownColor: p.fieldBg,
-                      style: TextStyle(color: p.text),
-                      icon: Icon(Icons.expand_more_rounded, color: p.subText),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
+                  temaField,
+                  SizedBox(height: kIsWeb ? 12 : 8),
+                  subareaField,
                 ],
               )
             else
-              Column(
+              Row(
                 children: [
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: widget.tema,
-                    items: widget.temaOptions
-                        .map(
-                          (s) => DropdownMenuItem(
-                            value: s,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.science_rounded,
-                                  size: 18,
-                                  color: p.subText,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(s),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => v != null ? widget.onTema(v) : null,
-                    decoration: HomeDeco.select('Tema', p),
-                    dropdownColor: p.fieldBg,
-                    style: TextStyle(color: p.text),
-                    icon: Icon(Icons.expand_more_rounded, color: p.subText),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  SizedBox(height: kIsWeb ? 16 : 12),
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: widget.subarea,
-                    items: widget.subareaOptions
-                        .map(
-                          (s) => DropdownMenuItem(
-                            value: s,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.category_rounded,
-                                  size: 18,
-                                  color: p.subText,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(s),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => v != null ? widget.onSubarea(v) : null,
-                    decoration: HomeDeco.select('Subárea', p),
-                    dropdownColor: p.fieldBg,
-                    style: TextStyle(color: p.text),
-                    icon: Icon(Icons.expand_more_rounded, color: p.subText),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  Expanded(child: temaField),
+                  SizedBox(width: horizontalGap),
+                  Expanded(child: subareaField),
                 ],
               ),
-
             SizedBox(height: kIsWeb ? 16 : 12),
-
-            if (kIsWeb)
-              Row(
+            if (isNarrow)
+              Column(
                 children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      value: widget.estilo,
-                      items: widget.estiloOptions
-                          .map(
-                            (s) => DropdownMenuItem(
-                              value: s,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.brush_rounded,
-                                    size: 18,
-                                    color: p.subText,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(s),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => v != null ? widget.onEstilo(v) : null,
-                      decoration: HomeDeco.select('Estilo', p),
-                      dropdownColor: p.fieldBg,
-                      style: TextStyle(color: p.text),
-                      icon: Icon(Icons.expand_more_rounded, color: p.subText),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  SizedBox(width: horizontalGap),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      value: widget.aspect,
-                      items: widget.aspectOptions
-                          .map(
-                            (s) => DropdownMenuItem(
-                              value: s,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.crop_rounded,
-                                    size: 18,
-                                    color: p.subText,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(s),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => v != null ? widget.onAspect(v) : null,
-                      decoration: HomeDeco.select('Proporção', p),
-                      dropdownColor: p.fieldBg,
-                      style: TextStyle(color: p.text),
-                      icon: Icon(Icons.expand_more_rounded, color: p.subText),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
+                  estiloField,
+                  SizedBox(height: kIsWeb ? 12 : 8),
+                  aspectField,
                 ],
               )
             else
-              Column(
+              Row(
                 children: [
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: widget.estilo,
-                    items: widget.estiloOptions
-                        .map(
-                          (s) => DropdownMenuItem(
-                            value: s,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.brush_rounded,
-                                  size: 18,
-                                  color: p.subText,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(s),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => v != null ? widget.onEstilo(v) : null,
-                    decoration: HomeDeco.select('Estilo', p),
-                    dropdownColor: p.fieldBg,
-                    style: TextStyle(color: p.text),
-                    icon: Icon(Icons.expand_more_rounded, color: p.subText),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  SizedBox(height: kIsWeb ? 16 : 12),
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: widget.aspect,
-                    items: widget.aspectOptions
-                        .map(
-                          (s) => DropdownMenuItem(
-                            value: s,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.crop_rounded,
-                                  size: 18,
-                                  color: p.subText,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(s),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => v != null ? widget.onAspect(v) : null,
-                    decoration: HomeDeco.select('Proporção', p),
-                    dropdownColor: p.fieldBg,
-                    style: TextStyle(color: p.text),
-                    icon: Icon(Icons.expand_more_rounded, color: p.subText),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  Expanded(child: estiloField),
+                  SizedBox(width: horizontalGap),
+                  Expanded(child: aspectField),
                 ],
               ),
-
             SizedBox(height: kIsWeb ? 16 : 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

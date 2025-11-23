@@ -341,25 +341,28 @@ class _AdminPageState extends State<AdminPage> {
                 children: [
                   Text('Papel', style: TextStyle(color: _textSub)),
                   const SizedBox(width: 10),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      _chip(
-                        'Todos',
-                        _roleFilter == 'todos',
-                        () => setState(() => _roleFilter = 'todos'),
-                      ),
-                      _chip(
-                        'Usuários',
-                        _roleFilter == 'user',
-                        () => setState(() => _roleFilter = 'user'),
-                      ),
-                      _chip(
-                        'Admins',
-                        _roleFilter == 'admin',
-                        () => setState(() => _roleFilter = 'admin'),
-                      ),
-                    ],
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        _chip(
+                          'Todos',
+                          _roleFilter == 'todos',
+                          () => setState(() => _roleFilter = 'todos'),
+                        ),
+                        _chip(
+                          'Usuários',
+                          _roleFilter == 'user',
+                          () => setState(() => _roleFilter = 'user'),
+                        ),
+                        _chip(
+                          'Admins',
+                          _roleFilter == 'admin',
+                          () => setState(() => _roleFilter = 'admin'),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               );
@@ -367,33 +370,40 @@ class _AdminPageState extends State<AdminPage> {
                 children: [
                   Text('Status', style: TextStyle(color: _textSub)),
                   const SizedBox(width: 10),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      _chip(
-                        'Todos',
-                        _statusFilter == 'todos',
-                        () => setState(() => _statusFilter = 'todos'),
-                      ),
-                      _chip(
-                        'Ativos',
-                        _statusFilter == 'ativo',
-                        () => setState(() => _statusFilter = 'ativo'),
-                      ),
-                      _chip(
-                        'Bloqueados',
-                        _statusFilter == 'bloqueado',
-                        () => setState(() => _statusFilter = 'bloqueado'),
-                      ),
-                    ],
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        _chip(
+                          'Todos',
+                          _statusFilter == 'todos',
+                          () => setState(() => _statusFilter = 'todos'),
+                        ),
+                        _chip(
+                          'Ativos',
+                          _statusFilter == 'ativo',
+                          () => setState(() => _statusFilter = 'ativo'),
+                        ),
+                        _chip(
+                          'Bloqueados',
+                          _statusFilter == 'bloqueado',
+                          () => setState(() => _statusFilter = 'bloqueado'),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               );
               return wrap
-                  ? Column(children: [role, const SizedBox(height: 8), status])
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [role, const SizedBox(height: 8), status],
+                    )
                   : Row(
                       children: [
                         Expanded(child: role),
+                        const SizedBox(width: 12),
                         Expanded(child: status),
                       ],
                     );
@@ -425,125 +435,138 @@ class _AdminPageState extends State<AdminPage> {
     final filtered = _filtered;
     return Theme(
       data: themed,
-      child: Scaffold(
-        appBar: _appBar(),
-        body: Stack(
-          children: [
-            Positioned.fill(
-              child: IgnorePointer(
-                ignoring: true,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 500),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: _dark
-                          ? [const Color(0xFF0B0E19), const Color(0xFF0E1325)]
-                          : [const Color(0xFFF7F8FA), const Color(0xFFEFF3FE)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+      child: Motion(
+        base: const Duration(milliseconds: 320),
+        child: Scaffold(
+          appBar: _appBar(),
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  ignoring: true,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 500),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: _dark
+                            ? [const Color(0xFF0B0E19), const Color(0xFF0E1325)]
+                            : [
+                                const Color(0xFFF7F8FA),
+                                const Color(0xFFEFF3FE),
+                              ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              top: -90,
-              right: -70,
-              child: _halo(300, _cta.withOpacity(.12)),
-            ),
-            Positioned(
-              bottom: -100,
-              left: -80,
-              child: _halo(260, const Color(0xFF22C55E).withOpacity(.10)),
-            ),
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _quickStat(
-                                  icon: Icons.groups_rounded,
-                                  label: 'Total',
-                                  value: _users.length.toString(),
-                                  gradient: _dark
-                                      ? [
-                                          const Color(0xFF0F172A),
-                                          const Color(0xFF111827),
-                                        ]
-                                      : [
-                                          const Color(0xFFFFFFFF),
-                                          const Color(0xFFF5F7FF),
-                                        ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _quickStat(
-                                  icon: Icons.shield_rounded,
-                                  label: 'Admins',
-                                  value: _countAdmins.toString(),
-                                  gradient: [
-                                    const Color(0xFF2563EB).withOpacity(.18),
-                                    const Color(0xFF7C3AED).withOpacity(.18),
+              Positioned(
+                top: -90,
+                right: -70,
+                child: _halo(300, _cta.withOpacity(.12)),
+              ),
+              Positioned(
+                bottom: -100,
+                left: -80,
+                child: _halo(260, const Color(0xFF22C55E).withOpacity(.10)),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                  child: Column(
+                    children: [
+                      LayoutBuilder(
+                        builder: (_, c) {
+                          final narrow = c.maxWidth < 900;
+                          final totalCard = _quickStat(
+                            icon: Icons.groups_rounded,
+                            label: 'Total',
+                            value: _users.length.toString(),
+                            gradient: _dark
+                                ? [
+                                    const Color(0xFF0F172A),
+                                    const Color(0xFF111827),
+                                  ]
+                                : [
+                                    const Color(0xFFFFFFFF),
+                                    const Color(0xFFF5F7FF),
                                   ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _quickStat(
-                                  icon: Icons.lock_rounded,
-                                  label: 'Bloqueados',
-                                  value: _countDisabled.toString(),
-                                  gradient: [
-                                    const Color(0xFFEF4444).withOpacity(.18),
-                                    const Color(0xFFF59E0B).withOpacity(.18),
-                                  ],
-                                ),
-                              ),
+                          );
+                          final adminsCard = _quickStat(
+                            icon: Icons.shield_rounded,
+                            label: 'Admins',
+                            value: _countAdmins.toString(),
+                            gradient: [
+                              const Color(0xFF2563EB).withOpacity(.18),
+                              const Color(0xFF7C3AED).withOpacity(.18),
                             ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    _filtersBar(),
-                    const SizedBox(height: 14),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, c) {
-                          final wide = c.maxWidth >= 900;
-                          if (_error.isNotEmpty) return _errorView();
-                          if (!_initialLoaded && _loading) {
-                            return _skeletonView();
+                          );
+                          final blockedCard = _quickStat(
+                            icon: Icons.lock_rounded,
+                            label: 'Bloqueados',
+                            value: _countDisabled.toString(),
+                            gradient: [
+                              const Color(0xFFEF4444).withOpacity(.18),
+                              const Color(0xFFF59E0B).withOpacity(.18),
+                            ],
+                          );
+                          if (narrow) {
+                            return Column(
+                              children: [
+                                totalCard,
+                                const SizedBox(height: 10),
+                                adminsCard,
+                                const SizedBox(height: 10),
+                                blockedCard,
+                              ],
+                            );
                           }
-                          if (filtered.isEmpty) return _emptyView();
-                          return wide
-                              ? _wideTable(filtered)
-                              : _compactList(filtered);
+                          return Row(
+                            children: [
+                              Expanded(child: totalCard),
+                              const SizedBox(width: 12),
+                              Expanded(child: adminsCard),
+                              const SizedBox(width: 12),
+                              Expanded(child: blockedCard),
+                            ],
+                          );
                         },
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 14),
+                      _filtersBar(),
+                      const SizedBox(height: 14),
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, c) {
+                            final wide = c.maxWidth >= 900;
+                            if (_error.isNotEmpty) return _errorView();
+                            if (!_initialLoaded && _loading) {
+                              return _skeletonView();
+                            }
+                            if (filtered.isEmpty) return _emptyView();
+                            return wide
+                                ? _wideTable(filtered)
+                                : _compactList(filtered);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
+          floatingActionButton: !_loading && _nextToken != null
+              ? FloatingActionButton.extended(
+                  onPressed: () => _load(more: true),
+                  icon: const Icon(Icons.download_rounded),
+                  label: const Text('Carregar mais'),
+                  backgroundColor: _cta,
+                  foregroundColor: Colors.white,
+                )
+              : null,
         ),
-        floatingActionButton: !_loading && _nextToken != null
-            ? FloatingActionButton.extended(
-                onPressed: () => _load(more: true),
-                icon: const Icon(Icons.download_rounded),
-                label: const Text('Carregar mais'),
-                backgroundColor: _cta,
-                foregroundColor: Colors.white,
-              )
-            : null,
       ),
     );
   }

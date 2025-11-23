@@ -102,7 +102,7 @@ class WebGenerator extends StatelessWidget {
                               Expanded(
                                 child: DropdownButtonFormField<String>(
                                   isExpanded: true,
-                                  value: selectedTemaLabel,
+                                  initialValue: selectedTemaLabel,
                                   items: temaOptions
                                       .map(
                                         (e) => DropdownMenuItem(
@@ -129,7 +129,7 @@ class WebGenerator extends StatelessWidget {
                               Expanded(
                                 child: DropdownButtonFormField<String>(
                                   isExpanded: true,
-                                  value: selectedSubareaLabel,
+                                  initialValue: selectedSubareaLabel,
                                   items: subs
                                       .map(
                                         (e) => DropdownMenuItem(
@@ -160,7 +160,7 @@ class WebGenerator extends StatelessWidget {
                               Expanded(
                                 child: DropdownButtonFormField<String>(
                                   isExpanded: true,
-                                  value: selectedEstiloLabel,
+                                  initialValue: selectedEstiloLabel,
                                   items: estiloOptions
                                       .map(
                                         (e) => DropdownMenuItem(
@@ -187,7 +187,7 @@ class WebGenerator extends StatelessWidget {
                               Expanded(
                                 child: DropdownButtonFormField<String>(
                                   isExpanded: true,
-                                  value: selectedAspect,
+                                  initialValue: selectedAspect,
                                   items: aspectos
                                       .map(
                                         (e) => DropdownMenuItem(
