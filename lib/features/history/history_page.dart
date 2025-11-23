@@ -74,7 +74,12 @@ class _HistoryPageState extends State<HistoryPage> {
                 elevation: 0,
               ),
               icon: const Icon(Icons.home_rounded, size: 18),
-              label: const Text('Voltar'),
+              label: Text(
+                'Voltar',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: Colors.white),
+              ),
             ),
           ),
         ),
@@ -380,14 +385,14 @@ class _HistoryPageState extends State<HistoryPage> {
       model: model,
       startIndex: startIndex,
       allDocs: allDocs,
-      onDownload: (currentSrc) {
+      onDownload: () {
         downloadImage(
-          currentSrc,
+          src,
           filename: 'PoliAI_${DateTime.now().millisecondsSinceEpoch}',
         );
       },
-      onDelete: (currentDocId, currentStoragePath, currentSrc) {
-        _confirmDelete(currentDocId, currentStoragePath, currentSrc);
+      onDelete: () {
+        _confirmDelete(docId, storagePath, src);
       },
     );
   }
@@ -409,11 +414,27 @@ class _HistoryPageState extends State<HistoryPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
+              child: Text(
+                'Cancelar',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.primary,
+                ),
+              ),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Remover'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(
+                'Remover',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: Colors.white),
+              ),
             ),
           ],
         ),

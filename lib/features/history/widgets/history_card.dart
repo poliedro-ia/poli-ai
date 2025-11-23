@@ -23,32 +23,26 @@ class HistoryImageCard extends StatefulWidget {
 }
 
 class _HistoryImageCardState extends State<HistoryImageCard> {
-  bool _hovered = false;
+  bool _hover = false;
 
   @override
   Widget build(BuildContext context) {
     final p = widget.palette;
     return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedScale(
-        scale: _hovered ? 1.02 : 1.0,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        child: InkWell(
-          onTap: widget.onTap,
-          borderRadius: BorderRadius.circular(16),
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedScale(
+          scale: _hover ? 1.02 : 1.0,
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    decoration: BoxDecoration(color: p.layer),
-                  ),
-                ),
+                Positioned.fill(child: Container(color: p.layer)),
                 Positioned.fill(
                   child: Image.network(
                     widget.src,
@@ -71,17 +65,35 @@ class _HistoryImageCardState extends State<HistoryImageCard> {
                     },
                   ),
                 ),
+                Positioned.fill(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 220),
+                    opacity: _hover ? 0.18 : 0.0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withOpacity(0.0),
+                            Colors.black.withOpacity(0.35),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 Positioned(
-                  right: 8,
-                  bottom: 8,
+                  right: 10,
+                  bottom: 10,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(999),
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                      filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: p.dark
-                              ? const Color(0xC0101425)
+                              ? const Color(0xCC0B1020)
                               : const Color(0xCCFFFFFF),
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(color: p.border),
@@ -94,6 +106,7 @@ class _HistoryImageCardState extends State<HistoryImageCard> {
                               onPressed: widget.onTap,
                               icon: const Icon(Icons.zoom_in_rounded),
                               color: p.textMain,
+                              splashRadius: 18,
                             ),
                             if (widget.onDownload != null)
                               IconButton(
@@ -101,6 +114,7 @@ class _HistoryImageCardState extends State<HistoryImageCard> {
                                 onPressed: widget.onDownload,
                                 icon: const Icon(Icons.download_rounded),
                                 color: p.textMain,
+                                splashRadius: 18,
                               ),
                             if (widget.onDelete != null)
                               IconButton(
@@ -108,6 +122,7 @@ class _HistoryImageCardState extends State<HistoryImageCard> {
                                 onPressed: widget.onDelete,
                                 icon: const Icon(Icons.delete_outline_rounded),
                                 color: p.textMain,
+                                splashRadius: 18,
                               ),
                           ],
                         ),

@@ -103,10 +103,77 @@ class _GeneratorPanelState extends State<GeneratorPanel> {
               style: TextStyle(color: p.subText),
             ),
             SizedBox(height: kIsWeb ? 20 : 16),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+
+            if (kIsWeb)
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: widget.tema,
+                      items: widget.temaOptions
+                          .map(
+                            (s) => DropdownMenuItem(
+                              value: s,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.science_rounded,
+                                    size: 18,
+                                    color: p.subText,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(s),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => v != null ? widget.onTema(v) : null,
+                      decoration: HomeDeco.select('Tema', p),
+                      dropdownColor: p.fieldBg,
+                      style: TextStyle(color: p.text),
+                      icon: Icon(Icons.expand_more_rounded, color: p.subText),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  SizedBox(width: horizontalGap),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: widget.subarea,
+                      items: widget.subareaOptions
+                          .map(
+                            (s) => DropdownMenuItem(
+                              value: s,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.category_rounded,
+                                    size: 18,
+                                    color: p.subText,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(s),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => v != null ? widget.onSubarea(v) : null,
+                      decoration: HomeDeco.select('Subárea', p),
+                      dropdownColor: p.fieldBg,
+                      style: TextStyle(color: p.text),
+                      icon: Icon(Icons.expand_more_rounded, color: p.subText),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Column(
+                children: [
+                  DropdownButtonFormField<String>(
                     isExpanded: true,
                     value: widget.tema,
                     items: widget.temaOptions
@@ -134,10 +201,8 @@ class _GeneratorPanelState extends State<GeneratorPanel> {
                     icon: Icon(Icons.expand_more_rounded, color: p.subText),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-                SizedBox(width: horizontalGap),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+                  SizedBox(height: kIsWeb ? 16 : 12),
+                  DropdownButtonFormField<String>(
                     isExpanded: true,
                     value: widget.subarea,
                     items: widget.subareaOptions
@@ -165,14 +230,81 @@ class _GeneratorPanelState extends State<GeneratorPanel> {
                     icon: Icon(Icons.expand_more_rounded, color: p.subText),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+
             SizedBox(height: kIsWeb ? 16 : 12),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+
+            if (kIsWeb)
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: widget.estilo,
+                      items: widget.estiloOptions
+                          .map(
+                            (s) => DropdownMenuItem(
+                              value: s,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.brush_rounded,
+                                    size: 18,
+                                    color: p.subText,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(s),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => v != null ? widget.onEstilo(v) : null,
+                      decoration: HomeDeco.select('Estilo', p),
+                      dropdownColor: p.fieldBg,
+                      style: TextStyle(color: p.text),
+                      icon: Icon(Icons.expand_more_rounded, color: p.subText),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  SizedBox(width: horizontalGap),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: widget.aspect,
+                      items: widget.aspectOptions
+                          .map(
+                            (s) => DropdownMenuItem(
+                              value: s,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.crop_rounded,
+                                    size: 18,
+                                    color: p.subText,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(s),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => v != null ? widget.onAspect(v) : null,
+                      decoration: HomeDeco.select('Proporção', p),
+                      dropdownColor: p.fieldBg,
+                      style: TextStyle(color: p.text),
+                      icon: Icon(Icons.expand_more_rounded, color: p.subText),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Column(
+                children: [
+                  DropdownButtonFormField<String>(
                     isExpanded: true,
                     value: widget.estilo,
                     items: widget.estiloOptions
@@ -200,10 +332,8 @@ class _GeneratorPanelState extends State<GeneratorPanel> {
                     icon: Icon(Icons.expand_more_rounded, color: p.subText),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-                SizedBox(width: horizontalGap),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+                  SizedBox(height: kIsWeb ? 16 : 12),
+                  DropdownButtonFormField<String>(
                     isExpanded: true,
                     value: widget.aspect,
                     items: widget.aspectOptions
@@ -231,9 +361,9 @@ class _GeneratorPanelState extends State<GeneratorPanel> {
                     icon: Icon(Icons.expand_more_rounded, color: p.subText),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+
             SizedBox(height: kIsWeb ? 16 : 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

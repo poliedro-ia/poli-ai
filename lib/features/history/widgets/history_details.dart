@@ -23,13 +23,18 @@ class DetailsPaneMobile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strongButtonStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+      color: Colors.white,
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: palette.dark ? const Color(0xFF0E1120) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: palette.border),
       ),
-
       padding: const EdgeInsets.all(14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -78,6 +83,8 @@ class DetailsPaneMobile extends StatelessWidget {
                 FilledButton.tonal(
                   onPressed: onDownload,
                   style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
@@ -86,35 +93,34 @@ class DetailsPaneMobile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.download_rounded, size: 18),
-                      SizedBox(width: 8),
-                      Text('Baixar'),
+                      const Icon(Icons.download_rounded, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Baixar', style: strongButtonStyle),
                     ],
                   ),
                 ),
                 FilledButton.tonal(
                   onPressed: onDelete,
                   style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
                     ),
-                    backgroundColor: palette.dark
-                        ? const Color(0x332255FF)
-                        : const Color(0x33FF5252),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.delete_outline, size: 18),
-                      SizedBox(width: 8),
-                      Text('Excluir'),
+                      const Icon(Icons.delete_outline, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Excluir', style: strongButtonStyle),
                     ],
                   ),
                 ),
@@ -129,7 +135,10 @@ class DetailsPaneMobile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Fechar'),
+                  child: Text(
+                    'Fechar',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
                 ),
               ],
             ),
@@ -158,6 +167,12 @@ class DetailsPaneWeb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strongButtonStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+      color: Colors.white,
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: palette.dark ? const Color(0xff0F1220) : Colors.white,
@@ -217,8 +232,10 @@ class DetailsPaneWeb extends StatelessWidget {
                   onPressed: onDownload,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
                   ),
-                  child: const Text('Baixar'),
+                  child: Text('Baixar', style: strongButtonStyle),
                 ),
               ),
               const SizedBox(width: 12),
@@ -227,8 +244,10 @@ class DetailsPaneWeb extends StatelessWidget {
                   onPressed: onDelete,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
                   ),
-                  child: const Text('Excluir'),
+                  child: Text('Excluir', style: strongButtonStyle),
                 ),
               ),
             ],

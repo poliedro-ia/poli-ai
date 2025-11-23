@@ -80,14 +80,26 @@ Future<void> showImageZoomDialog({
                   Expanded(
                     child: FilledButton.tonal(
                       onPressed: onDownload,
-                      child: const Text('Baixar'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        'Baixar',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.labelLarge?.copyWith(color: Colors.white),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: FilledButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Fechar'),
+                      child: Text(
+                        'Fechar',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
                     ),
                   ),
                 ],

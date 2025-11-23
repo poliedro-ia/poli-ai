@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:app/core/configs/assets/images.dart';
 import 'package:app/core/configs/theme/theme_controller.dart';
+import 'package:app/core/motion/motion.dart';
+import 'package:app/core/motion/route.dart';
 import 'package:app/core/utils/media_utils.dart';
 import 'package:app/features/account/edit_name_dialog.dart';
 import 'package:app/features/admin/admin_page.dart';
@@ -16,8 +18,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:app/core/motion/motion.dart';
-import 'package:app/core/motion/route.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -137,7 +137,6 @@ class _HomeState extends State<HomePage> {
             'storagePath': path,
             'model': data['model'] as String? ?? '',
             'prompt': data['promptUsado'] as String? ?? texto,
-            'promptUsado': data['promptUsado'] as String? ?? texto,
             'aspectRatio': _aspect,
             'temaSelecionado': _tema,
             'subareaSelecionada': _sub,
@@ -171,7 +170,7 @@ class _HomeState extends State<HomePage> {
             setState(() => _currentIndex = 0);
             await _scroll.animateTo(
               0,
-              duration: const Duration(milliseconds: 450),
+              duration: const Duration(milliseconds: 350),
               curve: Curves.easeOutCubic,
             );
           },
@@ -251,6 +250,10 @@ class _HomeState extends State<HomePage> {
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: const TextStyle(
+                      fontFamily: 'BrandingSF',
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   child: Text(logged ? 'Minha Conta' : 'Login'),
@@ -500,7 +503,8 @@ class _HomeState extends State<HomePage> {
             child: IgnorePointer(
               ignoring: true,
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 500),
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeOutCubic,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: p.dark
@@ -614,6 +618,10 @@ class _HomeState extends State<HomePage> {
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
+                            ),
+                            textStyle: const TextStyle(
+                              fontFamily: 'BrandingSF',
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           child: const Text('Fazer login'),
@@ -910,7 +918,7 @@ class _HomeState extends State<HomePage> {
         final isAdminTabMobile = !kIsWeb && _isAdmin && _currentIndex == 2;
 
         return Motion(
-          base: const Duration(milliseconds: 320),
+          base: const Duration(milliseconds: 260),
           child: Scaffold(
             backgroundColor: p.bg,
             resizeToAvoidBottomInset: true,

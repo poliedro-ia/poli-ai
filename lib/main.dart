@@ -6,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'firebase_options.dart';
 import 'package:app/features/home/home_page.dart';
-
 import 'package:app/core/configs/theme/theme.dart';
 import 'package:app/core/configs/theme/theme_controller.dart';
 
@@ -32,8 +31,7 @@ Future<void> _init() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _init();
-  await ThemeController.instance
-      .load();
+  await ThemeController.instance.load();
   runApp(const App());
 }
 
@@ -45,10 +43,50 @@ class App extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: ThemeController.instance.isDark,
       builder: (_, isDark, __) {
+        final baseLight = AppTheme.light;
+        final baseDark = AppTheme.dark;
+
+        const buttonTextStyle = TextStyle(
+          fontFamily: 'BrandingSF',
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        );
+
+        final themeLight = baseLight.copyWith(
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(textStyle: buttonTextStyle),
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(textStyle: buttonTextStyle),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(textStyle: buttonTextStyle),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(textStyle: buttonTextStyle),
+          ),
+        );
+
+        final themeDark = baseDark.copyWith(
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(textStyle: buttonTextStyle),
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(textStyle: buttonTextStyle),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(textStyle: buttonTextStyle),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(textStyle: buttonTextStyle),
+          ),
+        );
+
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
+          theme: themeLight,
+          darkTheme: themeDark,
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           home: const HomePage(),
         );

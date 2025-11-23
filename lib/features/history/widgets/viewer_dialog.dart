@@ -13,9 +13,8 @@ void showHistoryViewer({
   required String src,
   required String prompt,
   required String model,
-  required void Function(String src) onDownload,
-  required void Function(String docId, String? storagePath, String src)
-  onDelete,
+  required VoidCallback onDownload,
+  required VoidCallback onDelete,
   int startIndex = 0,
   List<QueryDocumentSnapshot<Map<String, dynamic>>>? allDocs,
 }) {
@@ -47,15 +46,6 @@ void showHistoryViewer({
           return (d['model'] as String?) ?? '';
         }
 
-        String docIdAt(int i) {
-          return allDocs[i].id;
-        }
-
-        String? storagePathAt(int i) {
-          final d = allDocs[i].data();
-          return d['storagePath'] as String?;
-        }
-
         return StatefulBuilder(
           builder: (context, setS) {
             void go(int dir) {
@@ -67,8 +57,6 @@ void showHistoryViewer({
             final curSrc = srcAt(current);
             final curPrompt = promptAt(current);
             final curModel = modelAt(current);
-            final curDocId = docIdAt(current);
-            final curStoragePath = storagePathAt(current);
 
             return Dialog(
               backgroundColor: Colors.transparent,
@@ -134,10 +122,10 @@ void showHistoryViewer({
                             palette: palette,
                             prompt: curPrompt,
                             model: curModel,
-                            onDownload: () => onDownload(curSrc),
+                            onDownload: onDownload,
                             onDelete: () {
                               Navigator.pop(context);
-                              onDelete(curDocId, curStoragePath, curSrc);
+                              onDelete();
                             },
                           ),
                         ),
@@ -272,10 +260,10 @@ void showHistoryViewer({
                           src: src,
                           prompt: prompt,
                           model: model,
-                          onDownload: () => onDownload(src),
+                          onDownload: onDownload,
                           onDelete: () {
                             Navigator.pop(context);
-                            onDelete(docId, storagePath, src);
+                            onDelete();
                           },
                           onClose: () => Navigator.pop(context),
                         ),
@@ -325,10 +313,10 @@ void showHistoryViewer({
                         src: src,
                         prompt: prompt,
                         model: model,
-                        onDownload: () => onDownload(src),
+                        onDownload: onDownload,
                         onDelete: () {
                           Navigator.pop(context);
-                          onDelete(docId, storagePath, src);
+                          onDelete();
                         },
                         onClose: () => Navigator.pop(context),
                       ),

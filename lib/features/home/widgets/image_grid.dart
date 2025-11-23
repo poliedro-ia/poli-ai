@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:app/common/widgets/skeleton.dart';
@@ -32,21 +33,31 @@ class ImageGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (images.isEmpty) {
+      final theme = Theme.of(context);
+      final cardColor = theme.cardColor;
+      final textColor = theme.textTheme.bodyMedium?.color ?? Colors.grey;
+      final subColor = textColor.withOpacity(0.65);
       return Container(
         height: 220,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: cardColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: theme.dividerColor.withOpacity(0.25)),
         ),
-        child: const Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.image_outlined, size: 48, color: Colors.grey),
-            SizedBox(height: 8),
+            Icon(Icons.image_outlined, size: 44, color: subColor),
+            const SizedBox(height: 8),
             Text(
               'Nenhuma imagem gerada ainda',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'As imagens geradas recentemente aparecem aqui.',
+              style: TextStyle(color: subColor, fontSize: 13),
             ),
           ],
         ),
@@ -86,7 +97,7 @@ class ImageGrid extends StatelessWidget {
                 : CachedNetworkImage(
                     imageUrl: src,
                     fit: BoxFit.cover,
-                    fadeInDuration: const Duration(milliseconds: 300),
+                    fadeInDuration: const Duration(milliseconds: 260),
                     placeholder: (_, __) =>
                         const Skeleton(height: double.infinity),
                     errorWidget: (_, __, ___) =>
@@ -107,7 +118,8 @@ class ImageGrid extends StatelessWidget {
                     );
                   }
                 },
-                icon: const Icon(Icons.download, color: Colors.white),
+                icon: const Icon(Icons.download_rounded, color: Colors.white),
+                splashRadius: 18,
               ),
               IconButton(
                 onPressed: () {
@@ -123,7 +135,8 @@ class ImageGrid extends StatelessWidget {
                     ),
                   );
                 },
-                icon: const Icon(Icons.fullscreen, color: Colors.white),
+                icon: const Icon(Icons.fullscreen_rounded, color: Colors.white),
+                splashRadius: 18,
               ),
             ];
 
@@ -131,33 +144,84 @@ class ImageGrid extends StatelessWidget {
                 actionsBuilder?.call(context, src, tag, item, index) ??
                 defaultActions();
 
-            return Card(
-              clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Hero(tag: tag, child: preview),
-                  ),
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.52),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(children: actions),
-                    ),
-                  ),
-                ],
-              ),
-            );
+            return _ImageTile(tag: tag, preview: preview, actions: actions);
           },
         );
       },
+    );
+  }
+}
+
+class _ImageTile extends StatefulWidget {
+  final String tag;
+  final Widget preview;
+  final List<Widget> actions;
+
+  const _ImageTile({
+    required this.tag,
+    required this.preview,
+    required this.actions,
+  });
+
+  @override
+  State<_ImageTile> createState() => _ImageTileState();
+}
+
+class _ImageTileState extends State<_ImageTile> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final borderColor = theme.dividerColor.withOpacity(0.3);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedScale(
+        scale: _hover ? 1.02 : 1.0,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: borderColor),
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Hero(tag: widget.tag, child: widget.preview),
+              ),
+              Positioned(
+                right: 10,
+                bottom: 10,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.55),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.14),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: widget.actions,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

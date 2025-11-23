@@ -43,29 +43,59 @@ class RemoteHistoryGrid extends StatelessWidget {
           return const Skeleton(height: 240);
         }
         if (!snap.hasData || snap.data!.docs.isEmpty) {
+          final theme = Theme.of(context);
+          final cardColor = theme.cardColor;
+          final textColor = theme.textTheme.bodyMedium?.color ?? Colors.grey;
+          textColor.withOpacity(0.65);
           return Container(
             height: 220,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              color: cardColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: theme.dividerColor.withOpacity(0.25)),
             ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.photo_outlined, size: 48, color: Colors.grey),
-                SizedBox(height: 8),
-                Text(
-                  'Sem registros ainda',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
+            child: const _EmptyRemoteHistory(),
           );
         }
         final items = _mapDocs(snap.data!.docs);
-        return ImageGrid(images: items, heroPrefix: 'remote_img');
+        return TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          tween: Tween(begin: 0.95, end: 1),
+          builder: (context, scale, child) {
+            return Transform.scale(scale: scale, child: child);
+          },
+          child: ImageGrid(images: items, heroPrefix: 'remote_img'),
+        );
       },
+    );
+  }
+}
+
+class _EmptyRemoteHistory extends StatelessWidget {
+  const _EmptyRemoteHistory();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.textTheme.bodyMedium?.color ?? Colors.grey;
+    final subColor = textColor.withOpacity(0.65);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.photo_outlined, size: 44, color: subColor),
+        const SizedBox(height: 8),
+        Text(
+          'Sem registros ainda',
+          style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Assim que você gerar imagens, elas aparecem aqui.',
+          style: TextStyle(color: subColor, fontSize: 13),
+        ),
+      ],
     );
   }
 }

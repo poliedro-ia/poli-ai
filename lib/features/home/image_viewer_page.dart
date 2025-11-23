@@ -26,8 +26,9 @@ class ImageViewerPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.black.withOpacity(0.9),
         foregroundColor: Colors.white,
+        elevation: 0,
         title: const Text('Visualização'),
         actions: [
           IconButton(
@@ -103,20 +104,37 @@ class ImageViewerPage extends StatelessWidget {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: size.width,
-              maxHeight: size.height,
-            ),
-            child: Hero(
-              tag: tag,
-              child: InteractiveViewer(
-                panEnabled: true,
-                minScale: 0.5,
-                maxScale: 5,
-                child: content,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF020617), Color(0xFF020617), Color(0xFF020617)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 220),
+              tween: Tween(begin: 0.96, end: 1),
+              curve: Curves.easeOutCubic,
+              builder: (context, scale, child) {
+                return Transform.scale(scale: scale, child: child);
+              },
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: size.width,
+                  maxHeight: size.height,
+                ),
+                child: Hero(
+                  tag: tag,
+                  child: InteractiveViewer(
+                    panEnabled: true,
+                    minScale: 0.5,
+                    maxScale: 5,
+                    child: content,
+                  ),
+                ),
               ),
             ),
           ),
