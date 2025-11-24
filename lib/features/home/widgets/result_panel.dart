@@ -32,20 +32,11 @@ class ResultPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
+    return Container(
       decoration: BoxDecoration(
         color: p.layer,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: p.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(p.dark ? 0.35 : 0.08),
-            blurRadius: 28,
-            offset: const Offset(0, 18),
-          ),
-        ],
       ),
       padding: p.blockPad,
       child: Column(
@@ -65,93 +56,77 @@ class ResultPanel extends StatelessWidget {
             style: TextStyle(color: p.subText),
           ),
           SizedBox(height: kIsWeb ? 16 : 12),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 260),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            child: previewDataUrlOrUrl == null
-                ? Container(
-                    key: const ValueKey('empty'),
-                    height: kIsWeb ? 320 : 260,
-                    decoration: BoxDecoration(
-                      color: p.fieldBg,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: p.fieldBorder),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Sem imagem ainda',
-                        style: TextStyle(color: p.subText),
-                      ),
-                    ),
-                  )
-                : ClipRRect(
-                    key: ValueKey(previewDataUrlOrUrl),
+          previewDataUrlOrUrl == null
+              ? Container(
+                  height: kIsWeb ? 320 : 260,
+                  decoration: BoxDecoration(
+                    color: p.fieldBg,
                     borderRadius: BorderRadius.circular(16),
-                    child: LayoutBuilder(
-                      builder: (_, c) {
-                        return AspectRatio(
-                          aspectRatio: _ar,
-                          child: SizedBox.expand(
-                            child: FittedBox(
-                              fit: BoxFit.cover,
-                              child: SizedBox(
-                                width: c.maxWidth,
-                                height: c.maxWidth / _ar,
-                                child: Image.network(
-                                  previewDataUrlOrUrl!,
-                                  fit: BoxFit.cover,
-                                  gaplessPlayback: true,
-                                ),
+                    border: Border.all(color: p.fieldBorder),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Sem imagem ainda',
+                      style: TextStyle(color: p.subText),
+                    ),
+                  ),
+                )
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: LayoutBuilder(
+                    builder: (_, c) {
+                      return AspectRatio(
+                        aspectRatio: _ar,
+                        child: SizedBox.expand(
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: c.maxWidth,
+                              height: c.maxWidth / _ar,
+                              child: Image.network(
+                                previewDataUrlOrUrl!,
+                                fit: BoxFit.cover,
+                                gaplessPlayback: true,
                               ),
                             ),
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
-          ),
+                ),
           SizedBox(height: kIsWeb ? 20 : 16),
-          Row(
-            children: [
-              FilledButton.tonal(
+          LayoutBuilder(
+            builder: (context, c) {
+              final isCompact = c.maxWidth < 420;
+
+              final ampliarButton = FilledButton(
                 onPressed: previewDataUrlOrUrl == null ? null : onZoom,
                 style: FilledButton.styleFrom(
-                  backgroundColor: p.dark
-                      ? const Color(0xff1F2937)
-                      : const Color(0xffE9EEF9),
-                  foregroundColor: p.text,
+                  backgroundColor: p.cta,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   padding: EdgeInsets.symmetric(
                     horizontal: kIsWeb ? 18 : 16,
                     vertical: kIsWeb ? 16 : 14,
-                  ),
-                  textStyle: const TextStyle(
-                    fontFamily: 'BrandingSF',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 child: const Text('Ampliar'),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.tonal(
+              );
+
+              final baixarButton = FilledButton(
                 onPressed: (!canDownload || previewDataUrlOrUrl == null)
                     ? null
-                    : () {
-                        downloadImage(
-                          previewDataUrlOrUrl!,
-                          filename:
-                              'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
-                        );
-                      },
+                    : () => downloadImage(
+                        previewDataUrlOrUrl!,
+                        filename:
+                            'PoliAI_${DateTime.now().millisecondsSinceEpoch}.png',
+                      ),
                 style: FilledButton.styleFrom(
-                  backgroundColor: p.dark
-                      ? const Color(0xff1F2937)
-                      : const Color(0xffE9EEF9),
-                  foregroundColor: p.text,
+                  backgroundColor: p.cta,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -159,16 +134,11 @@ class ResultPanel extends StatelessWidget {
                     horizontal: kIsWeb ? 18 : 16,
                     vertical: kIsWeb ? 16 : 14,
                   ),
-                  textStyle: const TextStyle(
-                    fontFamily: 'BrandingSF',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
                 ),
                 child: const Text('Baixar'),
-              ),
-              const Spacer(),
-              FilledButton.tonal(
+              );
+
+              final historicoButton = FilledButton(
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -187,15 +157,37 @@ class ResultPanel extends StatelessWidget {
                     horizontal: kIsWeb ? 18 : 16,
                     vertical: kIsWeb ? 16 : 14,
                   ),
-                  textStyle: const TextStyle(
-                    fontFamily: 'BrandingSF',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
                 ),
                 child: const Text('Ver histórico'),
-              ),
-            ],
+              );
+
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: ampliarButton),
+                        const SizedBox(width: 8),
+                        Expanded(child: baixarButton),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(width: double.infinity, child: historicoButton),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  ampliarButton,
+                  const SizedBox(width: 8),
+                  baixarButton,
+                  const Spacer(),
+                  historicoButton,
+                ],
+              );
+            },
           ),
         ],
       ),
